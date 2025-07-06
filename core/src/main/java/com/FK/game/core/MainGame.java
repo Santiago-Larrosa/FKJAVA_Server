@@ -1,5 +1,9 @@
-package com.FK.game;
-
+package com.FK.game.core;
+import com.FK.game.animations.*;
+import com.FK.game.core.*;
+import com.FK.game.entities.*;
+import com.FK.game.screens.*;
+import com.FK.game.states.*;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
@@ -8,10 +12,13 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 
-public class Main extends Game {
+public class MainGame extends Game {
     @Override
     public void create() {
-        setScreen(new GameScreen());
+        Assets.load(); 
+        Assets.manager.finishLoading();
+        Assets.assignTextures();
+        setScreen(new LoadingScreen(this));
     }
 }
 

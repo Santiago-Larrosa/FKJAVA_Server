@@ -1,11 +1,15 @@
-package com.FK.game;
-
+package com.FK.game.animations;
+import com.FK.game.core.*;
+import com.FK.game.entities.*;
+import com.FK.game.screens.*;
+import com.FK.game.states.*;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
 public class AnimationHandler {
     private final TextureRegion[] frames;
     private float frameDuration;
+    private static final boolean DEBUG_MODE = false;
     private float stateTime = 0;
 
     public AnimationHandler(Texture spriteSheet, int[][] frameData, float frameDuration) {
@@ -18,8 +22,8 @@ public class AnimationHandler {
         }
     }
 
-    public void update(float delta) {
-        stateTime += delta;
+   public void update(float delta) {
+    stateTime += delta;
     }
 
     public TextureRegion getCurrentFrame() {
@@ -32,7 +36,7 @@ public class AnimationHandler {
 
     public void dispose() {
         if (frames.length > 0) {
-            frames[0].getTexture().dispose(); // solo necesitamos eliminar el spriteSheet una vez
+            frames[0].getTexture().dispose(); 
         }
     }
 }
