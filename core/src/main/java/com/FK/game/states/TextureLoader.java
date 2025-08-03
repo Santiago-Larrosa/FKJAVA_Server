@@ -6,6 +6,7 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+
 public interface TextureLoader {
     Texture loadTexture(String path);
 }

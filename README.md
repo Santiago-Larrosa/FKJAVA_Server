@@ -34,8 +34,51 @@ Useful Gradle tasks and flags:
 
 ## Current project status
 
-Initial setup and project structure
+## Current State of the Game
 
+The project is currently in the stage of a playable demo. This demo includes the following features:
 
-Note that most tasks that are not specific to a single project can be run with `name:` prefix, where the `name` should be replaced with the ID of a specific project.
-For example, `core:clean` removes `build` folder only from the `core` project.
+### Player Functionality
+
+The player character supports all core movement and attack states, with directional variations:
+
+- Walking (left and right)
+- Jumping (left and right)
+- Falling (left and right)
+- Ground attack (left and right)
+- Saw attack (left and right)
+- Fire attack (left and right)
+- Receiving damage (reuses the jump animation; no separate damage animation)
+
+### Enemy Implementation
+
+The demo introduces the first enemy type, **Bolb**, which uses its own state machine tailored to its entity type. Bolb supports the following states:
+
+- Walking (uses the same animation for both directions)
+- Attacking (currently uses a single default Bolb animation)
+- Receiving damage (reuses the same default Bolb animation)
+
+### Environment and Map
+
+- Map designed in **Tiled**, with custom tileset integration
+- Functional collision system
+- Entity interaction and response system
+
+### Audio
+
+- Specific sound effects for distinct in-game actions
+
+### Heads-Up Display (HUD)
+
+- A HUD element that visually represents the fire attack's charge state
+
+### Screen and Display Management
+
+- Uses a **StretchViewport** to accommodate different screen resolutions
+- Multi-screen architecture, including:
+  - **GameScreen**: Main gameplay screen containing the game loop
+  - **LoadingScreen**: Transitional screen with a side progress bar to indicate resource loading and prevent black screen delays
+  - **MenuScreen**: A basic pause menu accessible via the Escape key
+
+## Trailer Video:
+ - https://youtu.be/MHtqUcFfqkk

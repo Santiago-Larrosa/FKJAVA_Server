@@ -13,7 +13,7 @@ import com.badlogic.gdx.utils.GdxRuntimeException;
 public class AnimationCache {
     private static AnimationCache instance;
     private final AssetManager assetManager;
-    private final ArrayMap<PlayerAnimationType, AnimationHandler> cache;
+    private final ArrayMap<AnimationType, AnimationHandler> cache;
 
     private AnimationCache() {
         this.assetManager = new AssetManager();
@@ -30,6 +30,11 @@ public class AnimationCache {
         for (PlayerAnimationType type : PlayerAnimationType.values()) {
             assetManager.load(type.getTexturePath(), Texture.class);
         }
+
+        for (EnemyAnimationType type : EnemyAnimationType.values()) {
+            assetManager.load(type.getTexturePath(), Texture.class);
+        }
+
     }
 
     public boolean update() {
@@ -40,7 +45,7 @@ public class AnimationCache {
         return assetManager.getProgress();
     }
 
-    public AnimationHandler getAnimation(PlayerAnimationType type) {
+    public AnimationHandler getAnimation(AnimationType type) {
         if (!assetManager.isLoaded(type.getTexturePath())) {
             throw new GdxRuntimeException("Asset not loaded: " + type.getTexturePath());
         }

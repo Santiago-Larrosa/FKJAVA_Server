@@ -34,6 +34,10 @@ public class AnimationHandler {
         stateTime = 0f;
     }
 
+    public float getTotalDuration() {
+        return frameDuration * frames.length;
+    }
+
     public void dispose() {
         if (frames.length > 0) {
             frames[0].getTexture().dispose(); 

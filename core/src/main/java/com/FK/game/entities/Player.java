@@ -7,6 +7,10 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
+import com.badlogic.gdx.graphics.Color;  
+import com.badlogic.gdx.utils.Array;
 import com.FK.game.animations.*;
 import com.FK.game.core.*;
 import com.FK.game.entities.*;
@@ -14,89 +18,135 @@ import com.FK.game.screens.*;
 import com.FK.game.states.*;
 
 
-public class Player {
-    private static final float WIDTH = 155;
+public class Player extends Entity {
+
+    private static final float WIDTH = 150;
     private static final float HEIGHT = 110;
-    public static final float WALK_SPEED = 200f;
+    public static final float WALK_SPEED = 500f;
     public static final float GRAVITY = -600;
     public static final float JUMP_VELOCITY = 10450;
     public static final float FLOOR_Y = 100f; 
-    private boolean facingRight = true;
     private boolean chargingJump = false;
     private final Texture texture = Assets.playerIdle;
     private final Texture pass = Assets.playerPass;
     private final Texture passLeft = Assets.playerPassLeft;
-    private final Rectangle bounds;
-    private final Vector2 velocity;
-    private boolean onGround = true;
     private boolean isAttacking = false;
     private float attackTimeLeft = 0f;
     public static final float ATTACK_DURATION = 0.332f; 
-    private PlayerState currentState;
-    private AnimationHandler currentAnimation;
-    private PlayerStateMachine stateMachine;
-    private AnimationHandler[] animations;
+    private EntityState<Player> currentState;
+    private EntityStateMachine<Player> stateMachine;
     private PlayerAnimationType currentType;
-    private boolean movementLocked = false;
+    private MainGame game;
+    private FireAttackHUD fireAttackHUD;
+    private float fireCooldown = 0f;
+    private static final float FIRE_ATTACK_COOLDOWN = 5f;
 
-    public Player() { 
-        bounds = new Rectangle(100, FLOOR_Y, WIDTH, HEIGHT);
-        velocity = new Vector2(0, 0);
+    public Player(MainGame game) { 
+        super(2000, FLOOR_Y, WIDTH, HEIGHT, 100, 100); 
+        setHealth(5);
+        this.game = game;
+        setCollisionBoxOffset(10f, 0f);
         TextureLoader loader = new BasicTextureLoader(); 
         AnimationCache cache = AnimationCache.getInstance();
         this.animations = new AnimationHandler[PlayerAnimationType.values().length];
-    
-    for (PlayerAnimationType type : PlayerAnimationType.values()) {
-        animations[type.ordinal()] = cache.getAnimation(type);
-    }
-        this.stateMachine = new PlayerStateMachine(this);
-        currentState = new IdleState();
-        currentState.enter(this); 
-    }
-   
-
-    public void update(float delta) {
-         if (!movementLocked) {
-        stateMachine.update(delta); 
-        applyPhysics(delta);         
-        bounds.x += velocity.x * delta; 
-    }
         
+        for (PlayerAnimationType type : PlayerAnimationType.values()) {
+            animations[type.ordinal()] = cache.getAnimation(type);
+        }
+
+        this.stateMachine = new EntityStateMachine<>(this, new IdleState());
+        this.currentState = new IdleState();
+        this.currentState.enter(this);
     }
+
+   
+    @Override
+    public void update(float delta) {
+        if (!movementLocked) {
+            stateMachine.update(delta);
+        }
+        super.update(delta); 
+        debugPlatformDetection();
+    }
+
 
     public void render(Batch batch) {
-        currentState.render(this, batch);
+    if (currentAnimation != null) {
+        TextureRegion frame = currentAnimation.getCurrentFrame();
+        batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
     }
+}
 
-    public void setState(PlayerState newState) {
+
+    public void setState(EntityState<Player> newState) {
         currentState.exit(this);
         this.currentState = newState;
         newState.enter(this);
     }
 
-     public PlayerStateMachine getStateMachine() {
+     public EntityStateMachine<Player> getStateMachine() {
         return stateMachine;
     }
-    public void setFacingRight(boolean facingRight) {
-        this.facingRight = facingRight;
-    }
 
-    public boolean isFacingRight() {
-        return facingRight;
-    }
+
 
     public void applyPhysics(float delta) {
         if (!onGround) {
-            velocity.x *= 0.98f;
+            velocity.y += getGravity() * delta;
+        } 
+    }
+
+    public boolean isAttackReady() {
+        return this.fireAttackHUD.isAttackReady();
+    }
+    
+    public void debugPlatformDetection() {      
+        if (collisionObjects == null || collisionObjects.isEmpty()) {
+            return;
         }
+
+        onPlatform = false;
         
-        velocity.y += GRAVITY * delta;
-        bounds.y += velocity.y * delta;
-        if (bounds.y <= FLOOR_Y) {
-            bounds.y = FLOOR_Y;
-            velocity.y = 0;
-            onGround = true;
+        float detectionWidth = collisionBox.width * 0.8f;
+        float detectionHeight = 15f;
+        float xMargin = (collisionBox.width - detectionWidth) / 2;
+        
+        Rectangle feetArea = new Rectangle(
+            collisionBox.x + xMargin,
+            collisionBox.y - detectionHeight,
+            detectionWidth,
+            detectionHeight
+        );
+
+        for (Rectangle platform : collisionObjects) {
+
+            boolean xCollision = (feetArea.x + feetArea.width > platform.x) && 
+                            (feetArea.x < platform.x + platform.width);
+            
+            boolean yCollision = (feetArea.y <= platform.y + platform.height) && 
+                            (feetArea.y + feetArea.height >= platform.y);
+            
+            if (xCollision && yCollision) {
+                onPlatform = true;
+                break;
+            }
         }
+    }
+
+    public void startFireAttackCooldown() {
+        this.fireCooldown = FIRE_ATTACK_COOLDOWN;
+        fireAttackHUD.resetCooldown(); 
+    }
+
+    public void receiveDamage(Entity source) {
+        float centerTarget = this.getX() + this.getWidth() / 2f;
+        float centerSource = source.getX() + source.getWidth() / 2f;
+        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
+
+        this.velocity.x = knockbackX;
+        this.velocity.y = KNOCKBACK_FORCE_Y;
+
+        this.getStateMachine().changeState(new DamageState(source));
     }
 
     public PlayerAnimationType getCurrentAnimationType() {
@@ -113,59 +163,75 @@ public class Player {
         }
     }
 
-    public AnimationHandler getCurrentAnimation() {
-        return currentAnimation;
+    
+
+    public MainGame getGame() {
+        return game;
+    }
+    @Override
+    protected float getGravity() {
+        return GRAVITY;
     }
 
-    public AnimationHandler getAnimation(PlayerAnimationType type) {
-        return animations[type.ordinal()];
-    }
 
 
-    public boolean isOnGround() {
-        return onGround;
-    }
-
-    public void setOnGround(boolean onGround) {
-        this.onGround = onGround;
-    }
-
-    public Rectangle getBounds() { return bounds; }
-    public Vector2 getVelocity() { return velocity; }
-
-    public float getX() {
-        return bounds.x;
-    }
-
-    public float getY() {
-        return bounds.y;
-    }
-
-    public float getWidth() {
-        return bounds.width;
-    }
-
-    public float getHeight() {
-        return bounds.height;
-    }
-
-    public void setPosition(float x, float y) {
-        bounds.setPosition(x, y);
-    }
-
-    public void setMovementLocked(boolean locked) {
-        this.movementLocked = locked;
-    }
-
-    public boolean isMovementLocked() {
-        return movementLocked;
-    }
-
-   public void dispose() {
+    @Override
+    public void dispose() {
         for (AnimationHandler animation : animations) {
             if (animation != null) animation.dispose();
         }
         texture.dispose();
     }
 
+    public void setX(float x) {
+        this.bounds.x = x;
+    }
+    
+    public void setY(float y) {
+        this.bounds.y = y;
+    }
+
+    public void setCollisionX(float x) {
+        this.collisionBox.x = x;
+    }
+    
+    public void setCollisionY(float y) {
+        this.collisionBox.y = y;
+    }
+
+    public boolean isOnSolidGround() {
+        Rectangle sensor = new Rectangle(
+            collisionBox.x,
+            collisionBox.y - 2f,   
+            collisionBox.width,
+            4f
+        );
+
+        for (Rectangle platform : collisionObjects) {
+            if (sensor.overlaps(platform)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+
+
+    public Rectangle getDamageBox() {
+        return DamageBox;
+    }
+    public void setFireAttackHUD(FireAttackHUD hud) {
+        this.fireAttackHUD = hud;
+    }
+
+    public FireAttackHUD getFireAttackHUD() {
+        return fireAttackHUD;
+    }
+
+    @Override 
+    public String toString () {
+        return "Player";
+    }
 }

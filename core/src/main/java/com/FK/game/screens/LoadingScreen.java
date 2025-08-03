@@ -15,6 +15,7 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.sounds.*;
 
 public class LoadingScreen implements Screen {
     private final MainGame game;
@@ -32,7 +33,8 @@ public class LoadingScreen implements Screen {
     @Override
     public void show() {
         shapeRenderer = new ShapeRenderer();
-    AnimationCache.getInstance().loadAssets();
+        AnimationCache.getInstance().loadAssets();
+        SoundCache.getInstance().loadAll();
     }
 
     @Override

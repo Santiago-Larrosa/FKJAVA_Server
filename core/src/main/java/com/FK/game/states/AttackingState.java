@@ -12,8 +12,9 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.sounds.*;
 
-public class AttackingState implements PlayerState {
+public class AttackingState implements EntityState<Player> {
     private float attackTimer = 0f;
     private static final float ATTACK_DURATION = 0.3f;
     private static final float HITBOX_ACTIVATION_FRAME = 0.15f;
@@ -23,11 +24,13 @@ public class AttackingState implements PlayerState {
 
     @Override
     public void enter(Player player) {
-        player.setCurrentAnimation(player.isFacingRight() ? PlayerAnimationType.ATTACKING_RIGHT : PlayerAnimationType.ATTACKING_LEFT);
+        player.getDamageBox().set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        player.setCurrentAnimation(player.isMovingRight() ? PlayerAnimationType.ATTACKING_RIGHT : PlayerAnimationType.ATTACKING_LEFT);
+         SoundCache.getInstance().get(SoundType.SWORD).play(0.5f);
         attackTimer = 0f;
         hitboxActive = false;
         attackHitbox = new Rectangle(
-            player.getBounds().x + (player.isFacingRight() ? player.getBounds().width * 0.7f : -player.getBounds().width * 0.2f),
+            player.getBounds().x + (player.isMovingRight() ? player.getBounds().width * 0.7f : -player.getBounds().width * 0.2f),
             player.getBounds().y + player.getBounds().height * 0.2f,
             player.getBounds().width * 0.5f,
             player.getBounds().height * 0.6f
@@ -39,10 +42,10 @@ public class AttackingState implements PlayerState {
    @Override
     public void update(Player player, float delta) {
         attackTimer += delta;
+
         player.getCurrentAnimation().update(delta);
         if (!hitboxActive && attackTimer >= HITBOX_ACTIVATION_FRAME) {
             hitboxActive = true;
-            //CollisionSystem.registerAttackHitbox(...);
         }
         
         updateHitboxPosition(player);
@@ -58,11 +61,11 @@ public class AttackingState implements PlayerState {
 
     private void handleEarlyMovement(Player player) {
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            player.setFacingRight(false);
+            player.setMovingRight(false);
             player.getVelocity().x = -Player.WALK_SPEED * 0.5f; 
         } 
         else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            player.setFacingRight(true);
+            player.setMovingRight(true);
             player.getVelocity().x = Player.WALK_SPEED * 0.5f;
         }
     }
@@ -79,14 +82,14 @@ public class AttackingState implements PlayerState {
         }
         
         if (wantsToMove) {
-            player.getVelocity().x = player.isFacingRight() ? 
+            player.getVelocity().x = player.isMovingRight() ? 
                 Player.WALK_SPEED : -Player.WALK_SPEED;
         }
     }
 
     private void updateHitboxPosition(Player player) {
         attackHitbox.setPosition(
-            player.getBounds().x + (player.isFacingRight() ? player.getBounds().width * 0.7f : -player.getBounds().width * 0.2f),
+            player.getBounds().x + (player.isMovingRight() ? player.getBounds().width * 0.7f : -player.getBounds().width * 0.2f),
             player.getBounds().y + player.getBounds().height * 0.2f
         );
     }
@@ -96,7 +99,6 @@ public class AttackingState implements PlayerState {
     @Override
     public void handleInput(Player player) {
         if (attackTimer >= ATTACK_DURATION * 0.7f && Gdx.input.isKeyJustPressed(Input.Keys.X)) {
-           // player.setState(new ComboAttackState()); // Estado para segundo ataque
         }
     }
 
@@ -116,9 +118,6 @@ public class AttackingState implements PlayerState {
 
     @Override
     public void exit(Player player) {
-        //CollisionSystem.unregisterAttackHitbox(attackHitbox);
-        if (attackTimer < ATTACK_DURATION * 0.9f) {
-            //ParticleSystem.spawnSlashEffect(attackHitbox, player.isFacingRight());
-        }
+        player.setDamageSize(0,0);
     }
 }

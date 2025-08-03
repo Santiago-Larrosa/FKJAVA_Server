@@ -14,7 +14,11 @@ dependencies {
   api "io.github.libktx:ktx-box2d:$ktxVersion"
   api "io.github.libktx:ktx-freetype:$ktxVersion"
   api "io.github.libktx:ktx-scene2d:$ktxVersion"
-  api "io.github.libktx:ktx-tiled:$ktxVersion"
+  implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+
 
   if(enableGraalNative == 'true') {
     implementation "io.github.berstanio:gdx-svmhelper-annotations:$graalHelperVersion"

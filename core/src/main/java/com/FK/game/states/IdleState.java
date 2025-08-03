@@ -10,14 +10,15 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 
-public class IdleState implements PlayerState {
+
+public class IdleState implements EntityState<Player> {
     private float idleTime = 0f;
     private static final float IDLE_ANIMATION_DELAY = 0.2f; 
 
     @Override
     public void enter(Player player) {
         player.getBounds().y = Player.FLOOR_Y;
-        player.setCurrentAnimation(player.isFacingRight() ? 
+        player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.IDLE_RIGHT : PlayerAnimationType.IDLE_LEFT);
     }
 
@@ -25,13 +26,18 @@ public class IdleState implements PlayerState {
     public void update(Player player, float delta) {
         idleTime += delta;
         player.getCurrentAnimation().update(delta);
+
         if (Math.abs(player.getVelocity().x) > 10f) {
-            player.setState(new WalkingState());
+            player.getStateMachine().changeState(new WalkingState());
         }
-        if (!player.isOnGround()) {
-            player.setState(new FallingState());
+        else if (player.getVelocity().y > 0) {
+            player.getStateMachine().changeState(new JumpingState());
+        }
+        else if (!player.isOnGround()) {
+            player.getStateMachine().changeState(new FallingState());
         }
     }
+
 
     @Override
     public void handleInput(Player player) {
@@ -44,6 +50,11 @@ public class IdleState implements PlayerState {
         else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
             player.getStateMachine().changeState(new AttackingState());
         }
+        
+        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+            player.getStateMachine().changeState(new FireAttackState());
+        }
+
     }
 
     @Override

@@ -4,72 +4,101 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.animations.*;
 import com.FK.game.core.*;
 import com.FK.game.entities.*;
-import com.FK.game.screens.*;
-import com.FK.game.states.*;
 
-public class JumpingState implements PlayerState {
+public class JumpingState implements EntityState<Player> {
     private float airTime = 0f;
     private static final float AIR_CONTROL = 0.7f;
+    private boolean hitCeiling = false;
 
     @Override
     public void enter(Player player) {
-        player.setCurrentAnimation(player.isFacingRight() ? PlayerAnimationType.JUMPING_RIGHT : PlayerAnimationType.JUMPING_LEFT);
-        player.setOnGround(false);
+        player.setCurrentAnimation(player.isMovingRight() ? 
+            PlayerAnimationType.JUMPING_RIGHT : PlayerAnimationType.JUMPING_LEFT);
+
+        if (player.isOnGround()) {
+            player.getVelocity().y = Player.JUMP_VELOCITY;
+            player.setOnGround(false);
+        }
+
         airTime = 0f;
+        hitCeiling = false;
     }
 
     @Override
     public void update(Player player, float delta) {
-        if (player.getVelocity().y < 0) {
-            player.getStateMachine().changeState(new FallingState());
-            return; 
-        }
         airTime += delta;
-        player.getCurrentAnimation().update(delta); 
+        player.getCurrentAnimation().update(delta);
+
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
             player.getVelocity().x = -Player.WALK_SPEED * AIR_CONTROL;
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             player.getVelocity().x = Player.WALK_SPEED * AIR_CONTROL;
         }
+
+        if (checkCeilingCollision(player)) {
+            player.getVelocity().y = 0;
+            hitCeiling = true;
+        }
+
+        if (hitCeiling || player.getVelocity().y < 0) {
+            player.getStateMachine().changeState(new FallingState());
+        }
+    }
+
+    private boolean checkCeilingCollision(Player player) {
+        Rectangle collisionBox = player.getCollisionBox();
+
+        Rectangle ceilingSensor = new Rectangle(
+            collisionBox.x + collisionBox.width * 0.2f,
+            collisionBox.y + collisionBox.height,
+            collisionBox.width * 0.6f,
+            6f
+        );
+
+        for (Rectangle rect : player.getCollisionObjects()) {
+            if (ceilingSensor.overlaps(rect)) {
+                player.setCollisionY(rect.y - collisionBox.height - 1);
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public void handleInput(Player player) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
-            //player.setState(new AirAttackState());
+            player.getStateMachine().changeState(new FallingAttackState());
         }
-        
+
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            player.setFacingRight(false);
+            player.setMovingRight(false);
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            player.setFacingRight(true);
+            player.setMovingRight(true);
         }
     }
 
     @Override
     public void render(Player player, Batch batch) {
         TextureRegion frame = player.getCurrentAnimation().getCurrentFrame();
-        float scale = 1.0f + (float)Math.sin(airTime * 10) * 0.05f; 
-        
+        float scale = 1.0f + (float)Math.sin(airTime * 10) * 0.05f;
+
         batch.draw(frame,
-                 player.getBounds().x,
-                 player.getBounds().y,
-                 player.getBounds().width * 0.5f,
-                 player.getBounds().height * 0.5f,
-                 player.getBounds().width,
-                 player.getBounds().height,
-                 scale,
-                 scale,
-                 0);
+            player.getBounds().x,
+            player.getBounds().y,
+            player.getBounds().width * 0.5f,
+            player.getBounds().height * 0.5f,
+            player.getBounds().width,
+            player.getBounds().height,
+            scale,
+            scale,
+            0);
     }
 
     @Override
     public void exit(Player player) {
-        if (player.getVelocity().y < 0) {
-            //ParticleSystem.spawnAirTrail(player.getBounds());
-        }
     }
 }

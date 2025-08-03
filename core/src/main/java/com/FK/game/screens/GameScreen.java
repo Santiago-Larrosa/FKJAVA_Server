@@ -7,13 +7,25 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.StretchViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
+import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.maps.MapLayer;
+import com.badlogic.gdx.maps.MapObject;
+import com.badlogic.gdx.maps.objects.RectangleMapObject;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
+import com.badlogic.gdx.graphics.Color;  
 import com.FK.game.animations.*;
 import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.sounds.*;
 
 public class GameScreen implements Screen {
     private final MainGame game;
@@ -21,6 +33,7 @@ public class GameScreen implements Screen {
     private Viewport viewport;
     private SpriteBatch batch;
     private Player player;
+    private FireAttackHUD fireAttackHUD;
     private boolean isCameraMoving = false;
     private float cameraMoveStartX, cameraMoveStartY;
     private float cameraMoveTargetX, cameraMoveTargetY;
@@ -31,6 +44,17 @@ public class GameScreen implements Screen {
     private float cameraOffsetX = 0;
     private float cameraOffsetY = 0;
     private final float CAMERA_MOVE_SPEED = 8f; 
+    private float shakeDuration = 0f;
+    private float shakeIntensity = 0f;
+    private float shakeTime = 0f;
+    private float originalCamX, originalCamY;
+    private TiledMap map;
+    private OrthogonalTiledMapRenderer mapRenderer;
+    private Array<Rectangle> collisionObjects = new Array<Rectangle>();
+    private ShapeRenderer shapeRenderer;
+    private Array<Bolb> bolbs;
+    private Array<Entity> entities;
+
 
     public GameScreen(MainGame game) {
         this.game = game;
@@ -38,92 +62,208 @@ public class GameScreen implements Screen {
 
     @Override
     public void show() {
+
+        map = new TmxMapLoader().load("maps/room1.tmx");
+        float mapScale = 1f; 
+        loadCollisionObjects(mapScale);
+        shapeRenderer = new ShapeRenderer();
+
+        mapRenderer = new OrthogonalTiledMapRenderer(map, mapScale);
         camera = new OrthographicCamera();
-        viewport = new StretchViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
+        viewport = new StretchViewport(WORLD_WIDTH * mapScale, WORLD_HEIGHT * mapScale, camera);
         viewport.apply();
         
-        camera.position.set(WORLD_WIDTH/2, WORLD_HEIGHT/2, 0);
+        camera.position.set(WORLD_WIDTH/2 * mapScale, WORLD_HEIGHT/2 * mapScale, 0);
         batch = new SpriteBatch();
         
         if (!AnimationCache.getInstance().update()) {
             game.setScreen(new LoadingScreen(game));
             return;
         }
+        entities = new Array<>();
+        player = new Player(game);
+        entities.add(player);
+        player.setCollisionObjects(collisionObjects); 
+        GameContext.setPlayer(this.player);
 
-        player = new Player();
+        bolbs = new Array<>();
+        for (int i = 0; i < 10; i++){
+            Bolb bolb = new Bolb(collisionObjects);
+            bolbs.add(bolb);
+        }
+        
+        for (Bolb b : this.bolbs) {
+            this.entities.add(b);
+        }
         player.setPosition(WORLD_WIDTH/2 - player.getWidth()/2, WORLD_HEIGHT/2 - player.getHeight()/2);
+        fireAttackHUD = new FireAttackHUD();
+        player.setFireAttackHUD(fireAttackHUD);
+
     }
 
-    @Override
+    private void loadCollisionObjects(float scale) {
+        MapLayer collisionLayer = map.getLayers().get("Capa de Objetos 1");
+        
+        if (collisionLayer != null) {
+            for (MapObject object : collisionLayer.getObjects()) {
+                if (object instanceof RectangleMapObject) {
+                    Rectangle rect = ((RectangleMapObject) object).getRectangle();
+                    rect.x *= scale;
+                    rect.y *= scale;
+                    rect.width *= scale;
+                    rect.height *= scale;
+                    collisionObjects.add(rect);
+                }
+            }
+        } else {
+            Gdx.app.log("DEBUG", "No se encontró la capa de colisiones");
+        }
+    }
+
+    private void updateEntities(float delta) {
+        for (int i = entities.size - 1; i >= 0; i--) {
+            Entity e = entities.get(i);
+            
+            // Verificar si la entidad está muerta antes de procesarla
+            if (e instanceof Bolb && ((Bolb) e).isDead()) {
+                entities.removeIndex(i);
+                continue; // Saltar al siguiente elemento si este fue eliminado
+            }
+            
+            float oldX = e.getX();
+            float oldY = e.getY();
+
+            e.update(delta); // movimiento + estado
+            if (e instanceof Bolb) {
+                Bolb bolb = (Bolb) e;
+                bolb.updateAttackCooldown(delta);
+            }
+
+            Rectangle bounds = e.getCollisionBox();
+            boolean collisionX = false;
+            boolean collisionY = false;
+
+            for (Rectangle rect : collisionObjects) {
+                if (bounds.overlaps(rect)) {
+                    float overlapX = Math.min(
+                        bounds.x + bounds.width - rect.x,
+                        rect.x + rect.width - bounds.x
+                    );
+
+                    float overlapY = Math.min(
+                        bounds.y + bounds.height - rect.y,
+                        rect.y + rect.height - bounds.y
+                    );
+
+                    if (overlapX < overlapY) collisionX = true;
+                    else collisionY = true;
+                }
+            }
+
+            if (collisionX) e.setPosition(oldX, e.getY());
+            if (collisionY) e.setPosition(e.getX(), oldY);
+        }
+        
+        checkEntityDamage();
+        fireAttackHUD.update(delta);
+    }
+
+
+
+    private void checkEntityDamage() {
+        for (int i = 0; i < entities.size; i++) {
+            Entity attacker = entities.get(i);
+            Rectangle damageBox = attacker.getDamageBox();
+
+            if (damageBox.width == 0 || damageBox.height == 0) continue;
+
+            for (int j = 0; j < entities.size; j++) {
+                if (i == j) continue;
+
+                Entity target = entities.get(j);
+
+                if (damageBox.overlaps(target.getCollisionBox())) {
+                    
+                    target.receiveDamage(attacker);
+                }
+            }
+        }
+    }
+
+
+
+
+  @Override
     public void render(float delta) {
         if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
             game.setScreen(new MenuScreen(game));
             return;
         }
-        player.update(delta);
+
+        updateEntities(delta);
         updateCamera(delta);
+        
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        
+
+        mapRenderer.setView(camera);
+        mapRenderer.render();
+
         batch.setProjectionMatrix(camera.combined);
         batch.begin();
-        player.render(batch);
+        {
+            for (Entity e : entities) {
+                e.render(batch);
+            }
+            fireAttackHUD.render(batch, camera);
+        }
         batch.end();
-    }
-    
-    private void updateCamera(float delta) {
-        float playerX = player.getX() + player.getWidth()/2;
-        float playerY = player.getY() + player.getHeight()/2;
-        
-        if (!isCameraMoving) {
-            float leftBound = camera.position.x - WORLD_WIDTH/2;
-            float rightBound = camera.position.x + WORLD_WIDTH/2;
-            float bottomBound = camera.position.y - WORLD_HEIGHT/2;
-            float topBound = camera.position.y + WORLD_HEIGHT/2;
-            
-            if (playerX <= leftBound) {
-                startCameraTransition(-WORLD_WIDTH, 0);
-            } 
-            else if (playerX >= rightBound) {
-                startCameraTransition(WORLD_WIDTH, 0);
-            }
-            else if (playerY <= bottomBound) {
-                startCameraTransition(0, -WORLD_HEIGHT);
-            } 
-            else if (playerY >= topBound) {
-                startCameraTransition(0, WORLD_HEIGHT);
-            }
-        } else {
-            updateCameraTransition(delta);
+
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        for (Entity e: this.entities) {
+            e.renderDebug(shapeRenderer);
+            e.renderDebugDamage(shapeRenderer);
         }
         
+    }
+
+    public FireAttackHUD getFireAttackHUD() {
+        return fireAttackHUD;
+    }
+
+    
+
+        
+    private void updateCamera(float delta) {
+        float playerCenterX = player.getBounds().x + player.getBounds().width / 2f;
+        float playerCenterY = player.getBounds().y + player.getBounds().height / 2f;
+        float offsetX = player.isMovingRight() ? 100f : -100f; 
+        float offsetY = 20f; 
+        float targetX = playerCenterX + offsetX;
+        float targetY = playerCenterY + offsetY;
+        float lerpSpeed = 3f; 
+        camera.position.x += (targetX - camera.position.x) * lerpSpeed * delta;
+        camera.position.y += (targetY - camera.position.y) * lerpSpeed * delta;
+        if (shakeTime < shakeDuration) {
+            shakeTime += delta;
+            float currentIntensity = shakeIntensity * (1 - (shakeTime / shakeDuration));
+            float shakeX = MathUtils.random(-1f, 1f) * currentIntensity;
+            float shakeY = MathUtils.random(-1f, 1f) * currentIntensity;
+            camera.position.x += shakeX;
+            camera.position.y += shakeY;
+        } else if (shakeDuration > 0f) {
+            shakeDuration = 0f;
+        }
+
         camera.update();
     }
 
-    private void startCameraTransition(float offsetX, float offsetY) {
-        isCameraMoving = true;
-        cameraMoveProgress = 0f;
-        cameraMoveStartX = camera.position.x;
-        cameraMoveStartY = camera.position.y;
-        cameraMoveTargetX = camera.position.x + offsetX;
-        cameraMoveTargetY = camera.position.y + offsetY;
-        player.setMovementLocked(true);
-    }
-
-    private void updateCameraTransition(float delta) {
-        cameraMoveProgress += delta / CAMERA_TRANSITION_DURATION;
-        float alpha = Math.min(1f, cameraMoveProgress);
-        float smoothAlpha = MathUtils.lerp(0, 1, alpha); 
-        
-        camera.position.x = MathUtils.lerp(cameraMoveStartX, cameraMoveTargetX, smoothAlpha);
-        camera.position.y = MathUtils.lerp(cameraMoveStartY, cameraMoveTargetY, smoothAlpha);
-        
-        if (cameraMoveProgress >= 1f) {
-            isCameraMoving = false;
-            cameraOffsetX = camera.position.x - WORLD_WIDTH/2;
-            cameraOffsetY = camera.position.y - WORLD_HEIGHT/2;
-            player.setMovementLocked(false); 
-        }
+    public void shakeCamera(float duration, float intensity) {
+        this.shakeDuration = duration;
+        this.shakeIntensity = intensity;
+        this.shakeTime = 0f;
+        this.originalCamX = camera.position.x;
+        this.originalCamY = camera.position.y;
     }
 
     @Override
@@ -143,6 +283,11 @@ public class GameScreen implements Screen {
     @Override
     public void dispose() {
         batch.dispose();
-        player.dispose();
+        for (Entity e : entities) {
+            e.dispose();
+        }   
+        map.dispose();
+        mapRenderer.dispose();
+        collisionObjects.clear();
     }
 }

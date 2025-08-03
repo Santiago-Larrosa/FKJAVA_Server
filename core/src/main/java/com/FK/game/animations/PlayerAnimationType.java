@@ -6,7 +6,7 @@ import com.FK.game.states.*;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
-public enum PlayerAnimationType {
+public enum PlayerAnimationType implements AnimationType{
     WALK_RIGHT("walk.png", new int[][] {
         {0, 0, 2480, 1754},
         {0, 1755, 2480, 1754},
@@ -91,6 +91,104 @@ public enum PlayerAnimationType {
         {2481, 0, 2480, 1754},
         {2481, 1755, 2480, 1754},
         {0, 1755, 2480, 1754}
+    }, 0.083f),
+
+    FALLING_ATACK("fallingAttack.png", new int[][] {
+        {0, 0, 2480, 1754},
+        {0, 1755, 2480, 1754},
+        {2481, 0, 2480, 1754}
+    }, 0.043f),
+
+    FALLING_ATACK_LEFT("fallingAttackLeft.png", new int[][] {
+        {0, 0, 2480, 1754},
+        {0, 1755, 2480, 1754},
+        {2481, 0, 2480, 1754}
+    }, 0.043f),
+
+    FALLING_ATACK_PASS("passAttack.png", new int[][] {
+        {0, 0, 2480, 1754},
+        {0, 1755, 2480, 1754}
+    }, 0.083f),
+
+    FALLING_ATACK_PASS_LEFT("passAttackLeft.png", new int[][] {
+        {0, 0, 2480, 1754},
+        {0, 1755, 2480, 1754},
+        {2481, 0, 2480, 1754}
+    }, 0.083f),
+
+    IGNITION("Ignition.png", new int[][] {
+    {      0,     0, 3500, 877}, // frame 1 (col 0, row 0)
+    {  3500,     0, 3500, 877}, // frame 2 (col 1, row 0)
+    {     0,   877, 3500, 877}, // frame 3 (col 0, row 1)
+    {  3500,   877, 3500, 877}, // frame 4 (col 1, row 1)
+    {     0,  1754, 3500, 877}, // frame 5 (col 0, row 2)
+    {  3500,  1754, 3500, 877}, // frame 6 (col 1, row 2)
+    {     0,  2631, 3500, 877}, // frame 7 (col 0, row 3)
+    {  3500,  2631, 3500, 877}  // frame 8 (col 1, row 3)
+}, 0.083f),
+
+
+    IGNITION_LEFT("ignitionLeft.png", new int[][] {
+        {      0,     0, 3500, 877}, // frame 1 (col 0, row 0)
+    {  3500,     0, 3500, 877}, // frame 2 (col 1, row 0)
+    {     0,   877, 3500, 877}, // frame 3 (col 0, row 1)
+    {  3500,   877, 3500, 877}, // frame 4 (col 1, row 1)
+    {     0,  1754, 3500, 877}, // frame 5 (col 0, row 2)
+    {  3500,  1754, 3500, 877}, // frame 6 (col 1, row 2)
+    {     0,  2631, 3500, 877}, // frame 7 (col 0, row 3)
+    {  3500,  2631, 3500, 877}  // frame 8 (col 1, row 3)
+    }, 0.083f),
+
+    FIRE_ATACK("FireAtack.png", new int[][] {
+        {      0,     0, 3500, 877}, // frame 1 (col 0, row 0)
+    {  3500,     0, 3500, 877}, // frame 2 (col 1, row 0)
+    {     0,   877, 3500, 877}
+    }, 0.083f),
+
+    FIRE_ATACK_LEFT("FireAtackLeft.png", new int[][] {
+        {      0,     0, 3500, 877}, // frame 1 (col 0, row 0)
+    {  3500,     0, 3500, 877}, // frame 2 (col 1, row 0)
+    {     0,   877, 3500, 877}
+    }, 0.083f),
+
+    LOADED("loaded.png", new int [][] {
+        {0, 0, 480, 600}
+    }, 0.083f),
+
+    UNLOADED("unloaded.png", new int [][] {
+        {0, 0, 480, 600}
+    }, 0.083f),
+
+    LOADING("loading.png", new int[][] {
+        {0, 0, 480, 600},
+        {480, 0, 480, 600},
+        {0, 600, 480, 600},
+        {480, 600, 480, 600},
+        {0, 1200, 480, 600},
+        {480, 1200, 480, 600},
+        {0, 1800, 480, 600},
+        {480, 1800, 480, 600},
+        {0, 2400, 480, 600},
+        {480, 2400, 480, 600},
+        {0, 3000, 480, 600},
+        {480, 3000, 480, 600},
+        {0, 3600, 480, 600}
+}, 0.083f),
+
+    UNLOADING("unloading.png", new int [][] {
+        {0, 0, 480, 600},
+        {480, 0, 480, 600},
+        {0, 600, 480, 600},
+        {480, 600, 480, 600},
+        {0, 1200, 480, 600},
+        {480, 1200, 480, 600},
+        {0, 1800, 480, 600},
+        {480, 1800, 480, 600},
+        {0, 2400, 480, 600},
+        {480, 2400, 480, 600},
+        {0, 3000, 480, 600},
+        {480, 3000, 480, 600},
+        {0, 3600, 480, 600}
     }, 0.083f);
 
    private final String texturePath;
@@ -102,7 +200,7 @@ public enum PlayerAnimationType {
         this.frames = frames;
         this.frameDuration = frameDuration;
     }
-
+    
     public String getTexturePath() {
         return this.texturePath;
     }

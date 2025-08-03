@@ -9,17 +9,18 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.sounds.*;
 
-public class ChargingJumpState implements PlayerState {
+public class ChargingJumpState implements EntityState<Player> {
     private float chargeTime = 0f;
     private static final float MAX_CHARGE_TIME = 0.5f;
     private static final float MIN_JUMP_FORCE = 250f;
-    private static final float MAX_JUMP_FORCE = 600f;
+    private static final float MAX_JUMP_FORCE = 1200f;
 
      @Override
     public void enter(Player player) {
         chargeTime = 0;
-        player.setCurrentAnimation(player.isFacingRight() ? 
+        player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.CHARGE_JUMP_RIGHT : 
             PlayerAnimationType.CHARGE_JUMP_LEFT);
     }
@@ -29,6 +30,7 @@ public class ChargingJumpState implements PlayerState {
         chargeTime = Math.min(chargeTime + delta, MAX_CHARGE_TIME);
         
         player.getCurrentAnimation().update(delta);
+        SoundCache.getInstance().stopLoop(SoundType.WALK);
         
         if (!Gdx.input.isKeyPressed(Input.Keys.SPACE)) {
             float jumpForce = MIN_JUMP_FORCE + 
@@ -44,9 +46,9 @@ public class ChargingJumpState implements PlayerState {
     @Override
     public void handleInput(Player player) {
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            player.setFacingRight(false);
+            player.setMovingRight(false);
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            player.setFacingRight(true);
+            player.setMovingRight(true);
         }
     }
 
@@ -73,6 +75,5 @@ public class ChargingJumpState implements PlayerState {
 
     @Override
     public void exit(Player player) {
-        //ParticleSystem.spawnJumpChargeEffect(player.getBounds());
     }
 }
