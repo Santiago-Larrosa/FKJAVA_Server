@@ -4,17 +4,19 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.animations.EnemyAnimationType;
 import com.FK.game.core.GameContext;
+import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Bolb;
 import com.FK.game.entities.Player;
 import com.FK.game.states.EntityState;
 
-public class BolbAttackState implements EntityState<Bolb> {
+public class BolbAttackState implements EntityState<Enemy> {
 
     private float attackTimer;
     private static final float ATTACK_DURATION = 0.1f;
 
     @Override
-    public void enter(Bolb bolb) {
+    public void enter(Enemy enemy) {
+        Bolb bolb = (Bolb) enemy;
         attackTimer = 0f;
         bolb.setAnimation(EnemyAnimationType.BOLB);
         bolb.getVelocity().x = 0;
@@ -23,7 +25,8 @@ public class BolbAttackState implements EntityState<Bolb> {
     }
 
     @Override
-    public void update(Bolb bolb, float delta) {
+    public void update(Enemy enemy, float delta) {
+        Bolb bolb = (Bolb) enemy;
         attackTimer += delta;
         Player player = GameContext.getPlayer();
 
@@ -42,7 +45,8 @@ public class BolbAttackState implements EntityState<Bolb> {
     }
 
     @Override
-    public void render(Bolb bolb, Batch batch) {
+    public void render(Enemy enemy, Batch batch) {
+        Bolb bolb = (Bolb) enemy;
         if (bolb.getCurrentAnimation() != null && bolb.getCurrentAnimation().getCurrentFrame() != null) {
             batch.draw(bolb.getCurrentAnimation().getCurrentFrame(),
                 bolb.getX(), bolb.getY(),
@@ -51,10 +55,11 @@ public class BolbAttackState implements EntityState<Bolb> {
     }
 
     @Override
-    public void exit(Bolb bolb) {
+    public void exit(Enemy enemy) {
+        Bolb bolb = (Bolb) enemy;
         bolb.getDamageBox().set(0, 0, 0, 0);
     }
 
     @Override
-    public void handleInput(Bolb bolb) {}
+    public void handleInput(Enemy enemy) {}
 }

@@ -35,6 +35,10 @@ public class AnimationCache {
             assetManager.load(type.getTexturePath(), Texture.class);
         }
 
+        for (ObjectsAnimationType type : ObjectsAnimationType.values()) {
+            assetManager.load(type.getTexturePath(), Texture.class);
+        }
+
     }
 
     public boolean update() {

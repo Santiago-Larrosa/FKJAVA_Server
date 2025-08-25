@@ -17,7 +17,6 @@ public class IdleState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
-        player.getBounds().y = Player.FLOOR_Y;
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.IDLE_RIGHT : PlayerAnimationType.IDLE_LEFT);
     }

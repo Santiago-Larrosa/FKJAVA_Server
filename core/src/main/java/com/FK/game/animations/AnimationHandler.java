@@ -9,12 +9,13 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 public class AnimationHandler {
     private final TextureRegion[] frames;
     private float frameDuration;
-    private static final boolean DEBUG_MODE = false;
     private float stateTime = 0;
+    private float animationDuration; 
 
     public AnimationHandler(Texture spriteSheet, int[][] frameData, float frameDuration) {
         this.frameDuration = frameDuration;
         this.frames = new TextureRegion[frameData.length];
+        this.animationDuration = frameDuration * frameData.length;
 
         for (int i = 0; i < frameData.length; i++) {
             int[] f = frameData[i];
@@ -22,20 +23,22 @@ public class AnimationHandler {
         }
     }
 
-   public void update(float delta) {
-    stateTime += delta;
+    public void update(float delta) {
+        stateTime += delta;
+        stateTime %= animationDuration;
     }
 
     public TextureRegion getCurrentFrame() {
         int index = (int)(stateTime / frameDuration) % frames.length;
         return frames[index];
     }
+
     public void reset() {
         stateTime = 0f;
     }
 
     public float getTotalDuration() {
-        return frameDuration * frames.length;
+        return animationDuration;
     }
 
     public void dispose() {

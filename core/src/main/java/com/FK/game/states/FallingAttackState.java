@@ -24,6 +24,7 @@ public class FallingAttackState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setDamage(1);
         startedPassAnimation = true;
         passAnimationFinished = false;
         passTimer = 0f;
@@ -118,6 +119,7 @@ public class FallingAttackState implements EntityState<Player> {
 
     @Override
     public void exit(Player player) {
+        player.setDamage(3);
         player.setDamageSize(0,0);
     }
 }

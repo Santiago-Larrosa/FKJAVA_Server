@@ -18,12 +18,14 @@ import com.FK.game.sounds.*;
 public class DamageState implements EntityState<Player> {
 
     private float knockbackTimer;
+    private float damage = 0;
     private boolean attackerLookRight;
     private float knockbackForceX = 0f;
     private float knockbackForceY = 0f;
 
     public DamageState(Entity entity) {
         this.knockbackTimer = 0.3f;
+        this.damage = entity.getDamage();
         this.attackerLookRight = entity.isMovingRight();
         this.knockbackForceX = entity.getKnockbackX();
         this.knockbackForceY = entity.getKnockbackY();
@@ -32,7 +34,7 @@ public class DamageState implements EntityState<Player> {
     @Override
     public void enter(Player player) {
         knockbackForceX = knockbackForceX * (attackerLookRight ? 1f : -1f);
-        player.decreaseHealth();
+        player.decreaseHealth(this.damage);
         player.getVelocity().x = knockbackForceX;
         player.getVelocity().y = knockbackForceY;
 

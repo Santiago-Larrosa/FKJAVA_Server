@@ -1,27 +1,36 @@
 package com.FK.game.states;
 
-import com.FK.game.entities.Bolb;
 import com.FK.game.animations.*;
 import com.FK.game.core.*;
+import com.FK.game.entities.Enemy;
+import com.FK.game.entities.Bolb;
 import com.FK.game.entities.Player;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 
-public class BolbWalkState implements EntityState<Bolb> {
+
+public class BolbWalkState implements EntityState<Enemy> {
 
     private float waitTimer = 0f;
     private boolean waitingToTurn = false;
     private final float waitDuration = 0.5f;
     private boolean edgeDetected = false;
+    private int[] airConfirmationCount = new int[1];
+    private final Vector2 bolbPos = new Vector2();
+    private final Vector2 playerPos = new Vector2();
+
 
     @Override
-    public void enter(Bolb bolb) {
+    public void enter(Enemy enemy) {
+        Bolb bolb = (Bolb) enemy;
         bolb.setAnimation(bolb.isMovingRight() ? EnemyAnimationType.BOLB : EnemyAnimationType.BOLB_LEFT);
+        airConfirmationCount[0] = 0;
     }
 
     @Override
-    public void update(Bolb bolb, float delta) {
+    public void update(Enemy enemy, float delta) {
+        Bolb bolb = (Bolb) enemy;
         bolb.getCurrentAnimation().update(delta);
 
         Player player = GameContext.getPlayer();
@@ -37,14 +46,10 @@ public class BolbWalkState implements EntityState<Bolb> {
                 bolb.setAnimation(bolb.isMovingRight() ? EnemyAnimationType.BOLB : EnemyAnimationType.BOLB_LEFT);
             }
             
-            if (!hasGroundAhead(bolb) && !edgeDetected) {
-                waitingToTurn = true;
-                return;
-            }
-
+            
             if (player != null && bolb.canAttack()) {
-                Vector2 bolbPos = new Vector2(bolb.getBounds().x, bolb.getBounds().y);
-                Vector2 playerPos = new Vector2(player.getBounds().x, player.getBounds().y);
+                bolbPos.set(bolb.getBounds().x, bolb.getBounds().y);
+                playerPos.set(player.getBounds().x, player.getBounds().y);
                 float distance = bolbPos.dst(playerPos);
                 if (distance < 50f) {
                     bolb.getStateMachine().changeState(new BolbAttackState());
@@ -58,10 +63,10 @@ public class BolbWalkState implements EntityState<Bolb> {
         bolb.getVelocity().x = bolb.isMovingRight() ? bolb.getSpeed() : -bolb.getSpeed();
         bolb.getBounds().x += bolb.getVelocity().x * delta;
 
-        if (!hasGroundAhead(bolb) && !edgeDetected) {
-            waitingToTurn = true;
-            return;
-        }
+        if (!waitingToTurn && (bolb.hasWallAhead() || ( !hasGroundAhead(bolb) && !edgeDetected ))) {
+                waitingToTurn = true;
+                waitTimer = 0f; 
+            }
 
         if (hasGroundAhead(bolb)) {
             edgeDetected = false;
@@ -70,22 +75,20 @@ public class BolbWalkState implements EntityState<Bolb> {
         if (bolb.getKnockbackTimer() > 0f) {
             bolb.setKnockbackTimer(bolb.getKnockbackTimer() - delta);
         } else {
-            if (!bolb.isOnSolidGround()) {
-                bolb.getVelocity().y += bolb.getGravity() * delta;
-            } else {
-                bolb.getVelocity().y = 0;
-            }
+            if (StateUtils.checkFalling(bolb, delta, airConfirmationCount)) {
+            return;
+        }
         }
 
         bolb.getBounds().y += bolb.getVelocity().y * delta;
         bolb.getCollisionBox().setPosition(
-            bolb.getBounds().x + bolb.getCollisionOffsetX(),
-            bolb.getBounds().y + bolb.getCollisionOffsetY()
+            bolb.getBounds().x + bolb.getCollisionBoxOffsetX(),
+            bolb.getBounds().y + bolb.getCollisionBoxOffsetY()
         );
 
         if (player != null && bolb.canAttack()) {
-            Vector2 bolbPos = new Vector2(bolb.getBounds().x, bolb.getBounds().y);
-            Vector2 playerPos = new Vector2(player.getBounds().x, player.getBounds().y);
+            bolbPos.set(bolb.getBounds().x, bolb.getBounds().y);
+            playerPos.set(player.getBounds().x, player.getBounds().y);
             float distance = bolbPos.dst(playerPos);
             if (distance < 50f) {
                 bolb.getStateMachine().changeState(new BolbAttackState());
@@ -94,7 +97,8 @@ public class BolbWalkState implements EntityState<Bolb> {
     }
 
     @Override
-    public void render(Bolb bolb, Batch batch) {
+    public void render(Enemy enemy, Batch batch) {
+        Bolb bolb = (Bolb) enemy;
         if (bolb.getCurrentAnimation() != null && bolb.getCurrentAnimation().getCurrentFrame() != null) {
             batch.draw(bolb.getCurrentAnimation().getCurrentFrame(),
                 bolb.getX(), bolb.getY(),
@@ -103,10 +107,10 @@ public class BolbWalkState implements EntityState<Bolb> {
     }
 
     @Override
-    public void handleInput(Bolb bolb) {}
+    public void handleInput(Enemy enemy) {}
 
     @Override
-    public void exit(Bolb bolb) {}
+    public void exit(Enemy enemy) {}
 
     private boolean isWallAhead(Bolb bolb) {
         float checkX = bolb.isMovingRight()
@@ -127,14 +131,20 @@ public class BolbWalkState implements EntityState<Bolb> {
 
 
     private boolean hasGroundAhead(Bolb bolb) {
-        float checkX = bolb.isMovingRight()
-            ? bolb.getCollisionBox().x + bolb.getCollisionBox().width + 5
-            : bolb.getCollisionBox().x - 5;
-
-        Rectangle checkArea = new Rectangle(checkX, bolb.getCollisionBox().y - 5, 10, 5);
-        for (Rectangle platform : bolb.getCollisionObjects()) {
-            if (checkArea.overlaps(platform)) return true;
-        }
-        return false;
+    float checkX = bolb.isMovingRight() 
+        ? bolb.getCollisionBox().x + bolb.getCollisionBox().width + 5 
+        : bolb.getCollisionBox().x - 5;
+    
+    Rectangle checkArea = new Rectangle(
+        checkX,
+        bolb.getCollisionBox().y - 15, 
+        10, 
+        15
+    );
+    
+    for (Rectangle platform : bolb.getCollisionObjects()) {
+        if (checkArea.overlaps(platform)) return true;
     }
+    return false;
+}
 }

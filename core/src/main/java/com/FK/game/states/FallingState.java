@@ -135,7 +135,7 @@ public class FallingState implements EntityState<Player> {
         );
         
         for (Rectangle platform : player.getCollisionObjects()) {
-           final float TOLERANCE = 10f; // píxeles de margen aceptable
+           final float TOLERANCE = 10f;
 
             if ((mainSensor.overlaps(platform) ||
                 leftSensor.overlaps(platform) ||
@@ -144,7 +144,7 @@ public class FallingState implements EntityState<Player> {
                 player.getCollisionBox().y >= platform.y + platform.height - TOLERANCE) {
 
                 player.getCollisionBox().y = platform.y + platform.height;
-                player.getVelocity().y = 0; // asegúrate de detener la caída
+                player.getVelocity().y = 0;
                 return true;
             }
 

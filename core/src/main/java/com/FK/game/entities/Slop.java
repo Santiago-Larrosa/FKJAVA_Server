@@ -15,14 +15,14 @@ import com.FK.game.states.*;
 import com.FK.game.sounds.*;
 
 import java.util.Random;
-public class Bolb extends Enemy {
+public class Slop extends Enemy {
     
-    public Bolb(Array<Rectangle> collisionObjects) {
-        super(0, 0, 250, 300, 100, 150, collisionObjects);
-        setCollisionBoxOffset(100f, 0f);
+    public Slop(Array<Rectangle> collisionObjects) {
+        super(0, 0, 106, 75, 106, 75, collisionObjects);
+        setCollisionBoxOffset(0f, 0f);
+        setCurrentAnimation(EnemyAnimationType.SLOP);
         setDamage(1);
-        setCurrentAnimation(EnemyAnimationType.BOLB);
-        this.stateMachine = new EntityStateMachine<>(this, new BolbWalkState());
+        this.stateMachine = new EntityStateMachine<>(this, new SlopWalkState());
         spawnOnRandomPlatform();
     }
     
@@ -32,10 +32,10 @@ public class Bolb extends Enemy {
     }
     @Override
     public EntityState<Enemy> getDefaultState() {
-        return new BolbWalkState();
+        return (EntityState<Enemy>) new SlopWalkState();
     }
     @Override
     public String toString() {
-        return "Bolb";
+        return "Slop";
     }
 }

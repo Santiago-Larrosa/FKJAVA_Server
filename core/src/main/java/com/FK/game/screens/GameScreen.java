@@ -26,6 +26,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.maps.*;
 
 public class GameScreen implements Screen {
     private final MainGame game;
@@ -52,55 +53,119 @@ public class GameScreen implements Screen {
     private OrthogonalTiledMapRenderer mapRenderer;
     private Array<Rectangle> collisionObjects = new Array<Rectangle>();
     private ShapeRenderer shapeRenderer;
-    private Array<Bolb> bolbs;
+    private Array<Enemy> enemies; 
     private Array<Entity> entities;
-
+    private Rectangle playerSpawnPoint; 
+    private Portal portal;
+    
 
     public GameScreen(MainGame game) {
         this.game = game;
     }
 
-    @Override
+  @Override
     public void show() {
-
-        map = new TmxMapLoader().load("maps/room1.tmx");
-        float mapScale = 1f; 
-        loadCollisionObjects(mapScale);
         shapeRenderer = new ShapeRenderer();
-
-        mapRenderer = new OrthogonalTiledMapRenderer(map, mapScale);
-        camera = new OrthographicCamera();
-        viewport = new StretchViewport(WORLD_WIDTH * mapScale, WORLD_HEIGHT * mapScale, camera);
-        viewport.apply();
-        
-        camera.position.set(WORLD_WIDTH/2 * mapScale, WORLD_HEIGHT/2 * mapScale, 0);
         batch = new SpriteBatch();
+        entities = new Array<>();
+        enemies = new Array<>();
         
+        camera = new OrthographicCamera();
+        viewport = new StretchViewport(WORLD_WIDTH * 0.7f, WORLD_HEIGHT * 0.7f, camera);
+        viewport.apply();
+        camera.position.set(WORLD_WIDTH/2 * 0.7f, WORLD_HEIGHT/2 * 0.7f, 0);
+  
         if (!AnimationCache.getInstance().update()) {
             game.setScreen(new LoadingScreen(game));
             return;
         }
-        entities = new Array<>();
-        player = new Player(game);
-        entities.add(player);
-        player.setCollisionObjects(collisionObjects); 
-        GameContext.setPlayer(this.player);
-
-        bolbs = new Array<>();
-        for (int i = 0; i < 10; i++){
-            Bolb bolb = new Bolb(collisionObjects);
-            bolbs.add(bolb);
-        }
-        
-        for (Bolb b : this.bolbs) {
-            this.entities.add(b);
-        }
-        player.setPosition(WORLD_WIDTH/2 - player.getWidth()/2, WORLD_HEIGHT/2 - player.getHeight()/2);
-        fireAttackHUD = new FireAttackHUD();
-        player.setFireAttackHUD(fireAttackHUD);
-
+        loadNewRandomMap();
     }
 
+private void checkPortalCollision() {
+    if (portal != null && player != null) {
+        if (player.getCollisionBox().overlaps(portal.getCollisionBox())) {
+            Gdx.app.log("PORTAL", "Jugador entró al portal, cargando nuevo mapa...");
+            loadNewRandomMap();
+        }
+    }
+}
+
+
+    private void loadNewRandomMap() {
+        FireAttackHUD existingHUD = player != null ? player.getFireAttackHUD() : null;
+        
+        cleanUpCurrentMap();
+        
+        MapManager mapManager = new MapManager(0.7f);
+        mapManager.loadMaps(
+            "maps/room3.tmx",
+
+            "maps/room6.tmx"
+        );
+        mapManager.setRandomMap();
+        map = mapManager.getCurrentMap();
+        mapRenderer = new OrthogonalTiledMapRenderer(map, mapManager.getScale());
+        loadCollisionObjects(mapManager.getScale());
+
+        if (!AnimationCache.getInstance().update()) {
+            Gdx.app.log("ANIMATION", "Recargando animaciones...");
+            game.setScreen(new LoadingScreen(game));
+            return;
+        }
+
+        loadEntities(mapManager.getScale(), existingHUD);
+        
+    }
+
+    private void cleanUpCurrentMap() {
+        if (map != null) map.dispose();
+        if (mapRenderer != null) mapRenderer.dispose();
+        collisionObjects.clear();
+        entities.clear();
+        enemies.clear();
+        portal = null;
+    }
+
+    private void loadEntities(float scale, FireAttackHUD existingHUD) {
+        Array<Rectangle> playerSpawns = loadSpawnPoints("Player", scale);
+        Array<Rectangle> bolbSpawns = loadSpawnPoints("Bolb", scale);
+        Array<Rectangle> slopSpawns = loadSpawnPoints("Slop", scale);
+
+        if (playerSpawns.size > 0) {
+            Rectangle spawn = playerSpawns.first();
+            playerSpawnPoint = spawn;
+            
+            player = new Player(game);
+            player.setCurrentAnimation(PlayerAnimationType.IDLE_RIGHT);
+            player.setPosition(spawn.x, spawn.y);
+            player.setCollisionObjects(collisionObjects);
+            
+            if (existingHUD != null) {
+                player.setFireAttackHUD(existingHUD);
+            } else {
+                fireAttackHUD = new FireAttackHUD();
+                player.setFireAttackHUD(fireAttackHUD);
+            }
+            
+            entities.add(player);
+            GameContext.setPlayer(player);
+        }
+
+        for (Rectangle spawn : bolbSpawns) {
+            Enemy bolb = new Bolb(collisionObjects);
+            bolb.setPosition(spawn.x, spawn.y);
+            enemies.add(bolb);
+            entities.add(bolb);
+        }
+
+        for (Rectangle spawn : slopSpawns) {
+            Enemy slop = new Slop(collisionObjects);
+            slop.setPosition(spawn.x, spawn.y);
+            enemies.add(slop);
+            entities.add(slop);
+        }
+    }
     private void loadCollisionObjects(float scale) {
         MapLayer collisionLayer = map.getLayers().get("Capa de Objetos 1");
         
@@ -124,19 +189,19 @@ public class GameScreen implements Screen {
         for (int i = entities.size - 1; i >= 0; i--) {
             Entity e = entities.get(i);
             
-            // Verificar si la entidad está muerta antes de procesarla
-            if (e instanceof Bolb && ((Bolb) e).isDead()) {
+            if (e instanceof Enemy && ((Enemy) e).isDead()) { 
                 entities.removeIndex(i);
-                continue; // Saltar al siguiente elemento si este fue eliminado
+                continue;
             }
             
             float oldX = e.getX();
             float oldY = e.getY();
+            
+            e.update(delta);
 
-            e.update(delta); // movimiento + estado
-            if (e instanceof Bolb) {
-                Bolb bolb = (Bolb) e;
-                bolb.updateAttackCooldown(delta);
+            if (e instanceof Enemy) {
+                Enemy enemy = (Enemy) e;
+                enemy.updateAttackCooldown(delta);
             }
 
             Rectangle bounds = e.getCollisionBox();
@@ -160,12 +225,29 @@ public class GameScreen implements Screen {
                 }
             }
 
-            if (collisionX) e.setPosition(oldX, e.getY());
+        if (collisionX) {
+            e.setPosition(oldX, e.getY());
+            e.setHasWallAhead(true);
+
+            String entityType = e.getClass().toString(); 
+            Gdx.app.log(entityType, "Colisión horizontal: pared detectada");
+        } else {
+            e.setHasWallAhead(false);
+        }
+
+            
             if (collisionY) e.setPosition(e.getX(), oldY);
         }
         
         checkEntityDamage();
         fireAttackHUD.update(delta);
+        if (entities.size == 1 && entities.first() instanceof Player && portal == null) {
+            portal = new Portal(playerSpawnPoint.x, playerSpawnPoint.y);
+            entities.add(portal);
+            Gdx.app.log("PORTAL", "Portal creado en (" + playerSpawnPoint.x + ", " + playerSpawnPoint.y + ")");
+        }
+        checkPortalCollision();
+
     }
 
 
@@ -190,6 +272,26 @@ public class GameScreen implements Screen {
         }
     }
 
+    private Array<Rectangle> loadSpawnPoints(String layerName, float scale) {
+    Array<Rectangle> spawnPoints = new Array<>();
+    MapLayer layer = map.getLayers().get(layerName);
+
+    if (layer != null) {
+        for (MapObject object : layer.getObjects()) {
+            if (object instanceof RectangleMapObject) {
+                Rectangle rect = ((RectangleMapObject) object).getRectangle();
+                rect.x *= scale;
+                rect.y *= scale;
+                rect.width *= scale;
+                rect.height *= scale;
+                spawnPoints.add(rect);
+            }
+        }
+    } else {
+        Gdx.app.log("DEBUG", "No se encontró la capa: " + layerName);
+    }
+    return spawnPoints;
+}
 
 
 

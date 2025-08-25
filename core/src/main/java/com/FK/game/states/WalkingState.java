@@ -16,15 +16,15 @@ public class WalkingState implements EntityState<Player> {
     private static final float FOOTSTEP_SOUND_DELAY = 0.3f;
     private float footstepTimer = 0f;
     private boolean lastDirectionRight = true;
-    private int airConfirmationCount = 0;
-    private static final int REQUIRED_CONFIRMATIONS = 5;
+    private int[] airConfirmationCount = new int[1]; 
+
 
     @Override
     public void enter(Player player) {
         updateAnimation(player);
         footstepTimer = 0f;
         lastDirectionRight = player.isMovingRight();
-        airConfirmationCount = 0;
+        airConfirmationCount[0] = 0;
     }
 
    @Override
@@ -33,17 +33,8 @@ public class WalkingState implements EntityState<Player> {
         player.getCurrentAnimation().update(delta);
         player.getBounds().y += player.getVelocity().y * delta;
 
-        if (!player.isOnPlataform()) {
-            player.getVelocity().y += Player.GRAVITY * delta;
-            airConfirmationCount++;
-
-            if (airConfirmationCount >= REQUIRED_CONFIRMATIONS) {
-                player.getStateMachine().changeState(new FallingState());
-                return;
-            }
-        } else {
-            player.getVelocity().y = 0;
-            airConfirmationCount = 0;
+        if (StateUtils.checkFalling(player, delta, airConfirmationCount)) {
+            return;
         }
 
         if (player.getVelocity().y > 0) {

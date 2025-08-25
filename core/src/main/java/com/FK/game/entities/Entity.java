@@ -10,9 +10,9 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.FK.game.animations.AnimationHandler;
+import com.FK.game.states.*;
 
-
-public abstract class Entity {
+public abstract class Entity<T extends Entity<T>> {
     protected Rectangle bounds;
     protected Vector2 velocity;
     protected boolean onGround = true;
@@ -26,11 +26,13 @@ public abstract class Entity {
     protected static final float KNOCKBACK_FORCE_Y = 300f;
     protected int health;
     protected float knockbackTimer = 0f;
-
+    protected EntityStateMachine<T> stateMachine;
     protected AnimationHandler currentAnimation;
     protected AnimationHandler[] animations;
     protected Rectangle DamageBox;
     protected Array<Rectangle> collisionObjects;
+    protected float damage = 0;
+    private boolean hasWallAhead;
 
     public Entity(float x, float y, float width, float height, float CollisionBoxWidth, float colisionBoxHeight) {
         bounds = new Rectangle(x, y, width, height);
@@ -54,12 +56,12 @@ public abstract class Entity {
         }
     }
 
+    
+
     protected void applyPhysics(float delta) {
         if (!onGround) {
             velocity.y += getGravity() * delta;
-        } else {
-            velocity.y = 0;
-        }
+        } 
     }
     public boolean isMovingRight() {
         return movingRight;
@@ -94,7 +96,11 @@ public abstract class Entity {
     }
 
 
-    protected abstract float getGravity();
+    public EntityStateMachine<T> getStateMachine() {
+        return stateMachine;
+    }
+
+    public abstract float getGravity();
 
     public Rectangle getBounds() {
         return bounds;
@@ -132,6 +138,14 @@ public abstract class Entity {
         this.collisionObjects = objects;
     }
 
+    public void setDamage (float newDamage) {
+        this.damage = newDamage;
+    }
+
+    public float getDamage () {
+        return this.damage;
+    }
+
     public Array<Rectangle> getCollisionObjects() {        
         return collisionObjects;
     }
@@ -140,7 +154,8 @@ public abstract class Entity {
         return new Rectangle(getX() + collisionOffsetX, getY() + collisionOffsetY, collisionBox.width, collisionBox.height);
     }
 
-
+    public boolean hasWallAhead() { return hasWallAhead; }
+    public void setHasWallAhead(boolean value) { hasWallAhead = value; }
 
     public void setCollisionBoxOffset(float offsetX, float offsetY) {
         this.collisionOffsetX = offsetX;
@@ -191,9 +206,9 @@ public abstract class Entity {
     public float getX() {
         return bounds.x;
     }
-    public void decreaseHealth () {
+    public void decreaseHealth (float damage) {
         Gdx.app.log("Daño", "recibi daño");
-        this.health --;
+        this.health -= damage;
     }
 
     public int getHealth() {

@@ -18,7 +18,7 @@ import com.FK.game.screens.*;
 import com.FK.game.states.*;
 
 
-public class Player extends Entity {
+public class Player extends Entity<Player> {
 
     private static final float WIDTH = 150;
     private static final float HEIGHT = 110;
@@ -34,7 +34,6 @@ public class Player extends Entity {
     private float attackTimeLeft = 0f;
     public static final float ATTACK_DURATION = 0.332f; 
     private EntityState<Player> currentState;
-    private EntityStateMachine<Player> stateMachine;
     private PlayerAnimationType currentType;
     private MainGame game;
     private FireAttackHUD fireAttackHUD;
@@ -44,12 +43,13 @@ public class Player extends Entity {
     public Player(MainGame game) { 
         super(2000, FLOOR_Y, WIDTH, HEIGHT, 100, 100); 
         setHealth(5);
+        
         this.game = game;
+        setDamage(3);
         setCollisionBoxOffset(10f, 0f);
         TextureLoader loader = new BasicTextureLoader(); 
         AnimationCache cache = AnimationCache.getInstance();
         this.animations = new AnimationHandler[PlayerAnimationType.values().length];
-        
         for (PlayerAnimationType type : PlayerAnimationType.values()) {
             animations[type.ordinal()] = cache.getAnimation(type);
         }
@@ -90,12 +90,6 @@ public class Player extends Entity {
 
 
 
-    public void applyPhysics(float delta) {
-        if (!onGround) {
-            velocity.y += getGravity() * delta;
-        } 
-    }
-
     public boolean isAttackReady() {
         return this.fireAttackHUD.isAttackReady();
     }
@@ -117,6 +111,7 @@ public class Player extends Entity {
             detectionWidth,
             detectionHeight
         );
+
 
         for (Rectangle platform : collisionObjects) {
 
@@ -169,7 +164,7 @@ public class Player extends Entity {
         return game;
     }
     @Override
-    protected float getGravity() {
+    public float getGravity() {
         return GRAVITY;
     }
 

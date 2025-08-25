@@ -31,6 +31,7 @@ public class FireAttackState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setDamage(0.5f);
        if (!player.isAttackReady()) {
         player.getStateMachine().changeState(new IdleState());
         return;
@@ -109,6 +110,7 @@ public class FireAttackState implements EntityState<Player> {
 
     @Override
     public void exit(Player player) {
+        player.setDamage(3);
         SoundCache.getInstance().stopLoop(SoundType.FIRE);
         player.setBoundSize(ORIGINAL_WIDTH, ORIGINAL_HEIGHT);
         player.getCollisionBox().set(player.getX() - FIRE_ATTACK_LEFT_OFFSET_X, player.getY(),ORIGINAL_COLISION_WIDTH, ORIGINAL_COLISION_HEIGHT);
