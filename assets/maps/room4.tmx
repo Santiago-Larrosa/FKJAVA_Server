@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="15" height="80" tilewidth="182" tileheight="182" infinite="0" nextlayerid="6" nextobjectid="68">
+<map version="1.10" tiledversion="1.10.2" orientation="orthogonal" renderorder="right-down" width="15" height="80" tilewidth="182" tileheight="182" infinite="0" nextlayerid="8" nextobjectid="76">
  <tileset firstgid="1" source="World2.tsx"/>
  <tileset firstgid="10" source="World4.tsx"/>
  <layer id="1" name="Capa de patrones 1" width="15" height="80">
@@ -164,6 +164,19 @@
    <point/>
   </object>
   <object id="67" x="606.061" y="11615.2">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="6" name="Fungop">
+  <object id="69" x="1900" y="2842.42">
+   <point/>
+  </object>
+  <object id="70" x="1396.97" y="5942.42">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="7" name="Portal">
+  <object id="75" x="1554.55" y="2169.7">
    <point/>
   </object>
  </objectgroup>

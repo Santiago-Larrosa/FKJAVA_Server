@@ -36,6 +36,9 @@ public class FallingAttackState implements EntityState<Player> {
 
     @Override
     public void update(Player player, float delta) {
+        
+        InputHandler input = player.getInputHandler();
+
         player.getDamageBox().set(player.getX(), player.getY(), player.getCollisionWidth(), player.getCollisionHeight());
         SoundCache.getInstance().playLoop(SoundType.FALLING_ATACK, 0.4f);
         if (startedPassAnimation) {
@@ -90,7 +93,8 @@ public class FallingAttackState implements EntityState<Player> {
                 player.getBounds().x = nextX;
                 player.getBounds().y = nextY;
 
-                if (!Gdx.input.isKeyPressed(Input.Keys.X)) {
+                // CAMBIO: Usamos el handler abstracto para comprobar si se soltó la tecla
+                if (!input.isAttackPressed()) { 
                     player.getVelocity().set(0, 0);
                     SoundCache.getInstance().stopLoop(SoundType.FALLING_ATACK);
                     player.getStateMachine().changeState(new FallingState());

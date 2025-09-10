@@ -27,13 +27,16 @@ import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
 import com.FK.game.maps.*;
+import com.FK.game.ui.*;
+import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 
 public class GameScreen implements Screen {
     private final MainGame game;
     private OrthographicCamera camera;
     private Viewport viewport;
     private SpriteBatch batch;
-    private Player player;
+    private Player player1;
+    private Player player2;
     private FireAttackHUD fireAttackHUD;
     private boolean isCameraMoving = false;
     private float cameraMoveStartX, cameraMoveStartY;
@@ -56,7 +59,29 @@ public class GameScreen implements Screen {
     private Array<Enemy> enemies; 
     private Array<Entity> entities;
     private Rectangle playerSpawnPoint; 
+    private Rectangle portalSpawnPoint; 
     private Portal portal;
+    private InputHandler player1Controls = new KeyboardInputHandler(
+        Input.Keys.A,        
+        Input.Keys.D,        
+        Input.Keys.W,         
+        Input.Keys.X,
+        Input.Keys.Z, 
+        Input.Keys.S      
+    );
+
+    private InputHandler player2Controls = new KeyboardInputHandler(
+        Input.Keys.LEFT,         
+        Input.Keys.RIGHT,        
+        Input.Keys.UP,         
+        Input.Keys.K,
+        Input.Keys.L, 
+        Input.Keys.DOWN       
+    );
+
+    private Array<ParticleEffect> activeEffects;
+    private ParticleEffect groundImpactEffectTemplate;
+    private boolean isFirstRun = true;
     
 
     public GameScreen(MainGame game) {
@@ -69,7 +94,8 @@ public class GameScreen implements Screen {
         batch = new SpriteBatch();
         entities = new Array<>();
         enemies = new Array<>();
-        
+        activeEffects = new Array<>();
+        GameContext.setScreen(this);
         camera = new OrthographicCamera();
         viewport = new StretchViewport(WORLD_WIDTH * 0.7f, WORLD_HEIGHT * 0.7f, camera);
         viewport.apply();
@@ -79,43 +105,63 @@ public class GameScreen implements Screen {
             game.setScreen(new LoadingScreen(game));
             return;
         }
-        loadNewRandomMap();
+        groundImpactEffectTemplate = new ParticleEffect();
+        groundImpactEffectTemplate.load(Gdx.files.internal("ground_impact.p"), Gdx.files.internal(""));
+        loadInitialMap();
+    }
+
+    private void loadInitialMap() {
+        cleanUpCurrentMap();
+        
+        MapManager mapManager = new MapManager(0.7f);
+        mapManager.loadMaps("maps/SpawnHall.tmx");
+        map = mapManager.getMaps().first();
+        mapRenderer = new OrthogonalTiledMapRenderer(map, mapManager.getScale());
+        
+        loadCollisionObjects(mapManager.getScale());
+        
+        Array<Rectangle> portalSpawns = loadSpawnPoints("Portal", mapManager.getScale());
+        if (portalSpawns.size > 0) {
+            this.portalSpawnPoint = portalSpawns.first();
+        }
+        loadEntities(mapManager.getScale(), null, true);
     }
 
 private void checkPortalCollision() {
-    if (portal != null && player != null) {
-        if (player.getCollisionBox().overlaps(portal.getCollisionBox())) {
-            Gdx.app.log("PORTAL", "Jugador entró al portal, cargando nuevo mapa...");
-            loadNewRandomMap();
+    if (portal != null && player1 != null) {
+        if (player1.getCollisionBox().overlaps(portal.getCollisionBox())) {
+            Gdx.app.log("PORTAL", "Jugador 1 entró al portal, iniciando transición...");
+            //game.setScreen(new InterlevelLoadingScreen(game, this));
+            loadRandomGameMap();
         }
     }
 }
 
 
-    private void loadNewRandomMap() {
-        FireAttackHUD existingHUD = player != null ? player.getFireAttackHUD() : null;
+public void loadRandomGameMap() {
+        FireAttackHUD existingHUD = player1 != null ? player1.getFireAttackHUD() : null;
         
         cleanUpCurrentMap();
         
         MapManager mapManager = new MapManager(0.7f);
+        // Ahora solo carga los mapas de las mazmorras
         mapManager.loadMaps(
             "maps/room3.tmx",
-
             "maps/room6.tmx"
         );
         mapManager.setRandomMap();
         map = mapManager.getCurrentMap();
         mapRenderer = new OrthogonalTiledMapRenderer(map, mapManager.getScale());
+        
         loadCollisionObjects(mapManager.getScale());
-
-        if (!AnimationCache.getInstance().update()) {
-            Gdx.app.log("ANIMATION", "Recargando animaciones...");
-            game.setScreen(new LoadingScreen(game));
-            return;
+        
+        // También cargamos la posición del portal del mapa actual
+        Array<Rectangle> portalSpawns = loadSpawnPoints("Portal", mapManager.getScale());
+        if (portalSpawns.size > 0) {
+            this.portalSpawnPoint = portalSpawns.first();
         }
 
-        loadEntities(mapManager.getScale(), existingHUD);
-        
+        loadEntities(mapManager.getScale(), existingHUD, false);
     }
 
     private void cleanUpCurrentMap() {
@@ -125,31 +171,40 @@ private void checkPortalCollision() {
         entities.clear();
         enemies.clear();
         portal = null;
+        portalSpawnPoint = null;
     }
 
-    private void loadEntities(float scale, FireAttackHUD existingHUD) {
+    private void loadEntities(float scale, FireAttackHUD existingHUD, boolean isSpawnHall) {
         Array<Rectangle> playerSpawns = loadSpawnPoints("Player", scale);
         Array<Rectangle> bolbSpawns = loadSpawnPoints("Bolb", scale);
         Array<Rectangle> slopSpawns = loadSpawnPoints("Slop", scale);
+        Array<Rectangle> fungopSpawns = loadSpawnPoints("Fungop", scale);
 
         if (playerSpawns.size > 0) {
             Rectangle spawn = playerSpawns.first();
             playerSpawnPoint = spawn;
             
-            player = new Player(game);
-            player.setCurrentAnimation(PlayerAnimationType.IDLE_RIGHT);
-            player.setPosition(spawn.x, spawn.y);
-            player.setCollisionObjects(collisionObjects);
+            player1 = new Player(game, player1Controls);
+            player1.setCurrentAnimation(PlayerAnimationType.IDLE_RIGHT);
+            player1.setPosition(spawn.x, spawn.y);
+            player1.setCollisionObjects(collisionObjects);
             
             if (existingHUD != null) {
-                player.setFireAttackHUD(existingHUD);
+                player1.setFireAttackHUD(existingHUD);
             } else {
                 fireAttackHUD = new FireAttackHUD();
-                player.setFireAttackHUD(fireAttackHUD);
+                player1.setFireAttackHUD(fireAttackHUD);
             }
             
-            entities.add(player);
-            GameContext.setPlayer(player);
+            entities.add(player1);
+            GameContext.setPlayer(player1);
+
+            player2 = new Player(game, player2Controls);
+            player2.setCurrentAnimation(PlayerAnimationType.IDLE_LEFT); 
+            player2.setPosition(spawn.x, spawn.y); 
+            player2.setCollisionObjects(collisionObjects);
+            player2.setFireAttackHUD(fireAttackHUD);
+            entities.add(player2);
         }
 
         for (Rectangle spawn : bolbSpawns) {
@@ -164,6 +219,13 @@ private void checkPortalCollision() {
             slop.setPosition(spawn.x, spawn.y);
             enemies.add(slop);
             entities.add(slop);
+        }
+
+        for (Rectangle spawn : fungopSpawns) {
+            Enemy fungop = new Fungop(collisionObjects);
+            fungop.setPosition(spawn.x, spawn.y);
+            enemies.add(fungop);
+            entities.add(fungop);
         }
     }
     private void loadCollisionObjects(float scale) {
@@ -184,10 +246,17 @@ private void checkPortalCollision() {
             Gdx.app.log("DEBUG", "No se encontró la capa de colisiones");
         }
     }
+    
 
     private void updateEntities(float delta) {
         for (int i = entities.size - 1; i >= 0; i--) {
             Entity e = entities.get(i);
+            if (e instanceof Player && ((Player) e).isDead()) {
+            Gdx.app.log("GAME", "El jugador ha muerto. Volviendo al SpawnHall...");
+            // Reiniciamos la pantalla de juego, lo que hará que isFirstRun sea true de nuevo
+            game.setScreen(new GameScreen(game));
+            return; // Detenemos la actualización para evitar errores
+        }
             
             if (e instanceof Enemy && ((Enemy) e).isDead()) { 
                 entities.removeIndex(i);
@@ -228,28 +297,38 @@ private void checkPortalCollision() {
         if (collisionX) {
             e.setPosition(oldX, e.getY());
             e.setHasWallAhead(true);
-
-            String entityType = e.getClass().toString(); 
-            Gdx.app.log(entityType, "Colisión horizontal: pared detectada");
+            e.setVelocityX(0);
         } else {
             e.setHasWallAhead(false);
         }
 
             
-            if (collisionY) e.setPosition(e.getX(), oldY);
+             boolean landedOnPlatform = false; 
+
+    if (collisionY) {
+        if (e.getVelocity().y <= 0) {
+            landedOnPlatform = true;
+            e.getVelocity().y = 0; 
+        } else {
+            e.getVelocity().y = 0; 
+        }
+        
+        e.setPosition(e.getX(), oldY);
+    }
+    
+    e.setOnPlatform(landedOnPlatform);
         }
         
         checkEntityDamage();
         fireAttackHUD.update(delta);
-        if (entities.size == 1 && entities.first() instanceof Player && portal == null) {
-            portal = new Portal(playerSpawnPoint.x, playerSpawnPoint.y);
+        if (enemies.isEmpty() && portal == null && portalSpawnPoint != null) {
+            portal = new Portal(portalSpawnPoint.x, portalSpawnPoint.y);
             entities.add(portal);
-            Gdx.app.log("PORTAL", "Portal creado en (" + playerSpawnPoint.x + ", " + playerSpawnPoint.y + ")");
+            Gdx.app.log("PORTAL", "Portal creado en (" + portalSpawnPoint.x + ", " + portalSpawnPoint.y + ")");
         }
         checkPortalCollision();
 
     }
-
 
 
     private void checkEntityDamage() {
@@ -264,13 +343,13 @@ private void checkPortalCollision() {
 
                 Entity target = entities.get(j);
 
-                if (damageBox.overlaps(target.getCollisionBox())) {
-                    
+                if (damageBox.overlaps(target.getCollisionBox())) {                    
                     target.receiveDamage(attacker);
                 }
             }
         }
     }
+
 
     private Array<Rectangle> loadSpawnPoints(String layerName, float scale) {
     Array<Rectangle> spawnPoints = new Array<>();
@@ -293,10 +372,19 @@ private void checkPortalCollision() {
     return spawnPoints;
 }
 
-
+public void createImpactEffect(float x, float y) {
+        if (groundImpactEffectTemplate == null) return;
+        ParticleEffect effect = new ParticleEffect(groundImpactEffectTemplate);
+        effect.setPosition(x, y);
+        effect.start();
+        activeEffects.add(effect);
+    }
 
   @Override
     public void render(float delta) {
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            game.setScreen(new UpgradeScreen(game, this));
+        }
         if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
             game.setScreen(new MenuScreen(game));
             return;
@@ -316,6 +404,15 @@ private void checkPortalCollision() {
         {
             for (Entity e : entities) {
                 e.render(batch);
+            }
+            for (int i = activeEffects.size - 1; i >= 0; i--) {
+                ParticleEffect effect = activeEffects.get(i);
+                effect.update(delta);
+                effect.draw(batch);   
+                if (effect.isComplete()) {
+                    effect.dispose();
+                    activeEffects.removeIndex(i);
+                }
             }
             fireAttackHUD.render(batch, camera);
         }
@@ -337,9 +434,9 @@ private void checkPortalCollision() {
 
         
     private void updateCamera(float delta) {
-        float playerCenterX = player.getBounds().x + player.getBounds().width / 2f;
-        float playerCenterY = player.getBounds().y + player.getBounds().height / 2f;
-        float offsetX = player.isMovingRight() ? 100f : -100f; 
+        float playerCenterX = player1.getBounds().x + player1.getBounds().width / 2f;
+        float playerCenterY = player1.getBounds().y + player1.getBounds().height / 2f;
+        float offsetX = player1.isMovingRight() ? 100f : -100f; 
         float offsetY = 20f; 
         float targetX = playerCenterX + offsetX;
         float targetY = playerCenterY + offsetY;
@@ -391,5 +488,11 @@ private void checkPortalCollision() {
         map.dispose();
         mapRenderer.dispose();
         collisionObjects.clear();
+         if (groundImpactEffectTemplate != null) {
+            groundImpactEffectTemplate.dispose();
+        }
+        for (ParticleEffect effect : activeEffects) {
+            effect.dispose();
+        }
     }
 }

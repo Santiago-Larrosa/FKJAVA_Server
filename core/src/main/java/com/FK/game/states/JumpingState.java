@@ -6,7 +6,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.animations.*;
-import com.FK.game.core.*;
+import com.FK.game.core.*; // Asegúrate de importar InputHandler
 import com.FK.game.entities.*;
 
 public class JumpingState implements EntityState<Player> {
@@ -18,7 +18,6 @@ public class JumpingState implements EntityState<Player> {
     public void enter(Player player) {
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.JUMPING_RIGHT : PlayerAnimationType.JUMPING_LEFT);
-
         if (player.isOnGround()) {
             player.getVelocity().y = Player.JUMP_VELOCITY;
             player.setOnGround(false);
@@ -30,13 +29,16 @@ public class JumpingState implements EntityState<Player> {
 
     @Override
     public void update(Player player, float delta) {
+        InputHandler input = player.getInputHandler();
+
         airTime += delta;
         player.getCurrentAnimation().update(delta);
-
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        if (input.isMoveLeftPressed()) {
             player.getVelocity().x = -Player.WALK_SPEED * AIR_CONTROL;
-        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+            player.setCurrentAnimation(PlayerAnimationType.JUMPING_LEFT);
+        } else if (input.isMoveRightPressed()) {
             player.getVelocity().x = Player.WALK_SPEED * AIR_CONTROL;
+            player.setCurrentAnimation(PlayerAnimationType.JUMPING_RIGHT);
         }
 
         if (checkCeilingCollision(player)) {
@@ -50,15 +52,14 @@ public class JumpingState implements EntityState<Player> {
     }
 
     private boolean checkCeilingCollision(Player player) {
+        // ... (Este método no tiene inputs, no necesita cambios)
         Rectangle collisionBox = player.getCollisionBox();
-
         Rectangle ceilingSensor = new Rectangle(
             collisionBox.x + collisionBox.width * 0.2f,
             collisionBox.y + collisionBox.height,
             collisionBox.width * 0.6f,
             6f
         );
-
         for (Rectangle rect : player.getCollisionObjects()) {
             if (ceilingSensor.overlaps(rect)) {
                 player.setCollisionY(rect.y - collisionBox.height - 1);
@@ -70,22 +71,27 @@ public class JumpingState implements EntityState<Player> {
 
     @Override
     public void handleInput(Player player) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        // CAMBIO: Obtenemos el handler del jugador.
+        InputHandler input = player.getInputHandler();
+
+        // CAMBIO: Usamos el handler abstracto para el ataque.
+        if (input.isAttackJustPressed()) {
             player.getStateMachine().changeState(new FallingAttackState());
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        // CAMBIO: Usamos el handler abstracto para actualizar la dirección del sprite.
+        if (input.isMoveLeftPressed()) {
             player.setMovingRight(false);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        } else if (input.isMoveRightPressed()) {
             player.setMovingRight(true);
         }
     }
 
     @Override
     public void render(Player player, Batch batch) {
+        // ... (Este método no tiene inputs, no necesita cambios)
         TextureRegion frame = player.getCurrentAnimation().getCurrentFrame();
         float scale = 1.0f + (float)Math.sin(airTime * 10) * 0.05f;
-
         batch.draw(frame,
             player.getBounds().x,
             player.getBounds().y,
@@ -100,5 +106,6 @@ public class JumpingState implements EntityState<Player> {
 
     @Override
     public void exit(Player player) {
+        // No hay nada que cambiar aquí.
     }
 }

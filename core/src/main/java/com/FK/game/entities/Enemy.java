@@ -33,7 +33,21 @@ public abstract class Enemy extends Entity <Enemy> {
         this.collisionObjects = collisionObjects;
         initializeAnimations();
     }
-    
+
+
+     public void receiveDamage(Entity source) {
+        if (stateMachine.getCurrentState() instanceof EnemyDamageState) return;
+        
+        float centerTarget = this.getX() + this.getWidth() / 2f;
+        float centerSource = source.getX() + source.getWidth() / 2f;
+        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
+        
+        this.velocity.x = knockbackX;
+        this.velocity.y = KNOCKBACK_FORCE_Y;
+        
+        this.getStateMachine().changeState(new EnemyDamageState(source));
+     }
+
     public abstract EntityState<Enemy> getDefaultState();   
 
     private void initializeAnimations() {
@@ -51,26 +65,9 @@ public void update(float delta) {
     stateMachine.update(delta);
 }
 
-
-
-   
-
     @Override
     public void render(Batch batch) {
         stateMachine.render(batch);
-    }
-
-    public void receiveDamage(Entity source) {
-        if (stateMachine.getCurrentState() instanceof EnemyDamageState) return;
-        
-        float centerTarget = this.getX() + this.getWidth() / 2f;
-        float centerSource = source.getX() + source.getWidth() / 2f;
-        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
-        
-        this.velocity.x = knockbackX;
-        this.velocity.y = KNOCKBACK_FORCE_Y;
-        
-        this.getStateMachine().changeState(createDamageState(source));
     }
     
     protected abstract EnemyDamageState createDamageState(Entity source);

@@ -47,6 +47,7 @@ public abstract class Entity<T extends Entity<T>> {
         bounds.y += velocity.y * delta;
 
         collisionBox.setPosition(bounds.x + collisionOffsetX, bounds.y + collisionOffsetY);
+        debugPlatformDetection();
     }
 
     public void render(Batch batch) {
@@ -67,19 +68,41 @@ public abstract class Entity<T extends Entity<T>> {
         return movingRight;
     }
 
-    public void receiveDamage(Entity source) {
-        Gdx.app.log("DAÑO", this.getClass().getSimpleName() + " recibió daño de " + source.getClass().getSimpleName());
-        float directionX = this.getX() + getWidth() / 2f - (source.getX() + source.getWidth() / 2f);
-        float centerTarget = this.getX() + this.getWidth() / 2f;
-        float centerSource = source.getX() + source.getWidth() / 2f;
-        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
-        this.knockbackTimer = 0.3f;
-        this.velocity.x = knockbackX;
-        this.velocity.y = KNOCKBACK_FORCE_Y;
+     public void debugPlatformDetection() {      
+        if (collisionObjects == null || collisionObjects.isEmpty()) {
+            return;
+        }
 
+        onPlatform = false;
+        
+        float detectionWidth = collisionBox.width * 0.8f;
+        float detectionHeight = 15f;
+        float xMargin = (collisionBox.width - detectionWidth) / 2;
+        
+        Rectangle feetArea = new Rectangle(
+            collisionBox.x + xMargin,
+            collisionBox.y - detectionHeight,
+            detectionWidth,
+            detectionHeight
+        );
+
+
+        for (Rectangle platform : collisionObjects) {
+
+            boolean xCollision = (feetArea.x + feetArea.width > platform.x) && 
+                            (feetArea.x < platform.x + platform.width);
+            
+            boolean yCollision = (feetArea.y <= platform.y + platform.height) && 
+                            (feetArea.y + feetArea.height >= platform.y);
+            
+            if (xCollision && yCollision) {
+                onPlatform = true;
+                break;
+            }
+        }
     }
 
-
+    public void receiveDamage(Entity source) {}
 
     public void renderDebug(ShapeRenderer renderer) {
         renderer.setColor(Color.BLUE);
@@ -126,12 +149,12 @@ public abstract class Entity<T extends Entity<T>> {
         onPlatform = value;
     }
 
-    public void setMovementLocked(boolean locked) {
-        this.movementLocked = locked;
+    public void setVelocityX (float velX) {
+        this.velocity.x = velX;
     }
 
-    public boolean isMovementLocked() {
-        return movementLocked;
+    public void setVelocityY (float velY) {
+        this.velocity.y = velY;
     }
 
     public void setCollisionObjects(Array<Rectangle> objects) {
@@ -207,7 +230,6 @@ public abstract class Entity<T extends Entity<T>> {
         return bounds.x;
     }
     public void decreaseHealth (float damage) {
-        Gdx.app.log("Daño", "recibi daño");
         this.health -= damage;
     }
 
@@ -233,23 +255,6 @@ public abstract class Entity<T extends Entity<T>> {
 
     public float getCollisionHeight () {
         return this.collisionBox.height;
-    }
-
-    public boolean isOnSolidGround() {
-        Rectangle sensor = new Rectangle(
-            collisionBox.x,
-            collisionBox.y - 2f,   
-            collisionBox.width,
-            4f
-        );
-
-        for (Rectangle platform : collisionObjects) {
-            if (sensor.overlaps(platform)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public float getWidth() {

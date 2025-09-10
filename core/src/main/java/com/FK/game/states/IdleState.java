@@ -40,21 +40,22 @@ public class IdleState implements EntityState<Player> {
 
     @Override
     public void handleInput(Player player) {
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        InputHandler input = player.getInputHandler();
+        if (input.isMoveLeftPressed() || input.isMoveRightPressed()) {
             player.getStateMachine().changeState(new WalkingState());
         }
-        else if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && player.isOnGround()) {
+        else if (input.isJumpPressed() && player.isOnGround()) {
             player.getStateMachine().changeState(new ChargingJumpState());
         }
-        else if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        else if (input.isAttackJustPressed()) {
             player.getStateMachine().changeState(new AttackingState());
         }
         
-        if (Gdx.input.isKeyJustPressed(Input.Keys.Z)) {
+        if (input.isFireAttackJustPressed()) {
             player.getStateMachine().changeState(new FireAttackState());
         }
-
     }
+
 
     @Override
     public void render(Player player, Batch batch) {

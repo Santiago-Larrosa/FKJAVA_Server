@@ -38,12 +38,13 @@ public class Player extends Entity<Player> {
     private MainGame game;
     private FireAttackHUD fireAttackHUD;
     private float fireCooldown = 0f;
+    private InputHandler inputHandler;
     private static final float FIRE_ATTACK_COOLDOWN = 5f;
 
-    public Player(MainGame game) { 
+    public Player(MainGame game, InputHandler inputHandler) { 
         super(2000, FLOOR_Y, WIDTH, HEIGHT, 100, 100); 
         setHealth(5);
-        
+        this.inputHandler = inputHandler; 
         this.game = game;
         setDamage(3);
         setCollisionBoxOffset(10f, 0f);
@@ -88,61 +89,33 @@ public class Player extends Entity<Player> {
         return stateMachine;
     }
 
+    @Override
+    public void receiveDamage(Entity source) {
+        if (stateMachine.getCurrentState() instanceof DamageState) return;
+        
+        float centerTarget = this.getX() + this.getWidth() / 2f;
+        float centerSource = source.getX() + source.getWidth() / 2f;
+        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
+        
+        this.velocity.x = knockbackX;
+        this.velocity.y = KNOCKBACK_FORCE_Y;
+        
+        this.getStateMachine().changeState(new DamageState(source));
+    }
+
 
 
     public boolean isAttackReady() {
         return this.fireAttackHUD.isAttackReady();
     }
     
-    public void debugPlatformDetection() {      
-        if (collisionObjects == null || collisionObjects.isEmpty()) {
-            return;
-        }
-
-        onPlatform = false;
-        
-        float detectionWidth = collisionBox.width * 0.8f;
-        float detectionHeight = 15f;
-        float xMargin = (collisionBox.width - detectionWidth) / 2;
-        
-        Rectangle feetArea = new Rectangle(
-            collisionBox.x + xMargin,
-            collisionBox.y - detectionHeight,
-            detectionWidth,
-            detectionHeight
-        );
-
-
-        for (Rectangle platform : collisionObjects) {
-
-            boolean xCollision = (feetArea.x + feetArea.width > platform.x) && 
-                            (feetArea.x < platform.x + platform.width);
-            
-            boolean yCollision = (feetArea.y <= platform.y + platform.height) && 
-                            (feetArea.y + feetArea.height >= platform.y);
-            
-            if (xCollision && yCollision) {
-                onPlatform = true;
-                break;
-            }
-        }
-    }
+   
 
     public void startFireAttackCooldown() {
         this.fireCooldown = FIRE_ATTACK_COOLDOWN;
         fireAttackHUD.resetCooldown(); 
     }
 
-    public void receiveDamage(Entity source) {
-        float centerTarget = this.getX() + this.getWidth() / 2f;
-        float centerSource = source.getX() + source.getWidth() / 2f;
-        float knockbackX = (centerTarget > centerSource) ? KNOCKBACK_FORCE_X : -KNOCKBACK_FORCE_X;
-
-        this.velocity.x = knockbackX;
-        this.velocity.y = KNOCKBACK_FORCE_Y;
-
-        this.getStateMachine().changeState(new DamageState(source));
-    }
 
     public PlayerAnimationType getCurrentAnimationType() {
         return currentType;
@@ -194,25 +167,9 @@ public class Player extends Entity<Player> {
         this.collisionBox.y = y;
     }
 
-    public boolean isOnSolidGround() {
-        Rectangle sensor = new Rectangle(
-            collisionBox.x,
-            collisionBox.y - 2f,   
-            collisionBox.width,
-            4f
-        );
-
-        for (Rectangle platform : collisionObjects) {
-            if (sensor.overlaps(platform)) {
-                return true;
-            }
-        }
-
-        return false;
+    public InputHandler getInputHandler() {
+        return this.inputHandler;
     }
-
-
-
 
     public Rectangle getDamageBox() {
         return DamageBox;

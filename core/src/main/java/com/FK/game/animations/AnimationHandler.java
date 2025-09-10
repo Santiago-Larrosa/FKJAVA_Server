@@ -32,7 +32,10 @@ public class AnimationHandler {
         int index = (int)(stateTime / frameDuration) % frames.length;
         return frames[index];
     }
-
+    public int getCurrentFrameIndex() {
+        if (frameDuration == 0) return 0;
+        return (int)(stateTime / frameDuration) % frames.length;
+    }
     public void reset() {
         stateTime = 0f;
     }

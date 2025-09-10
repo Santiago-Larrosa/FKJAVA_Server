@@ -51,4 +51,8 @@ public class MapManager {
     public float getScale() {
         return mapScale;
     }
+
+    public Array<TiledMap> getMaps() {
+        return this.maps;
+    }
 }

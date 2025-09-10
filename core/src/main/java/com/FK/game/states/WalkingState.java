@@ -29,6 +29,7 @@ public class WalkingState implements EntityState<Player> {
 
    @Override
     public void update(Player player, float delta) {
+        InputHandler input = player.getInputHandler();
         handleInput(player);
         player.getCurrentAnimation().update(delta);
         player.getBounds().y += player.getVelocity().y * delta;
@@ -42,18 +43,18 @@ public class WalkingState implements EntityState<Player> {
             return;
         }
 
-        if (Gdx.input.isKeyPressed(Input.Keys.SPACE) && player.isOnPlataform()) {
+        if (input.isJumpPressed() && player.isOnPlataform()) {
             player.getStateMachine().changeState(new ChargingJumpState());
             return;
         }
 
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        if (input.isAttackJustPressed()) {
             player.getStateMachine().changeState(new AttackingState());
             SoundCache.getInstance().stopLoop(SoundType.WALK);
             return;
         }
 
-        boolean isMoving = Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        boolean isMoving = input.isMoveLeftPressed() || input.isMoveRightPressed();
 
         if (!isMoving) {
             player.getStateMachine().changeState(new IdleState());
@@ -66,8 +67,10 @@ public class WalkingState implements EntityState<Player> {
 
     @Override
     public void handleInput(Player player) {
-        boolean movingLeft = Gdx.input.isKeyPressed(Input.Keys.LEFT);
-        boolean movingRight = Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        InputHandler input = player.getInputHandler();
+        boolean movingLeft = input.isMoveLeftPressed();
+        boolean movingRight = input.isMoveRightPressed();
+
         if (movingLeft) {
             player.setMovingRight(false);
             player.getVelocity().x = -Player.WALK_SPEED;

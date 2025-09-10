@@ -45,18 +45,6 @@ public class BolbWalkState implements EntityState<Enemy> {
 
                 bolb.setAnimation(bolb.isMovingRight() ? EnemyAnimationType.BOLB : EnemyAnimationType.BOLB_LEFT);
             }
-            
-            
-            if (player != null && bolb.canAttack()) {
-                bolbPos.set(bolb.getBounds().x, bolb.getBounds().y);
-                playerPos.set(player.getBounds().x, player.getBounds().y);
-                float distance = bolbPos.dst(playerPos);
-                if (distance < 50f) {
-                    bolb.getStateMachine().changeState(new BolbAttackState());
-                }
-            }
-
-
             return;
         }
 

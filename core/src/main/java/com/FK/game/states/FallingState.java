@@ -51,7 +51,7 @@ public class FallingState implements EntityState<Player> {
         if (lastGroundCheckTime >= GROUND_CHECK_INTERVAL) {
             lastGroundCheckTime = 0f;
             
-            boolean groundDetected = checkGroundCollision(player);
+            boolean groundDetected = player.isOnPlataform();
             
             if (groundDetected) {
                 Gdx.app.log("Jugador", "Toco el suelo");
@@ -89,13 +89,17 @@ public class FallingState implements EntityState<Player> {
     }
 
     private void handleAirControl(Player player, float delta) {
+        // CAMBIO: Obtenemos el handler del jugador
+        InputHandler input = player.getInputHandler();
+        
         float controlFactor = isFastFalling ? AIR_CONTROL * 0.3f : AIR_CONTROL;
         float targetVelocityX = 0;
         
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+        // CAMBIO: Usamos el handler abstracto
+        if (input.isMoveLeftPressed()) {
             targetVelocityX = -Player.WALK_SPEED * controlFactor;
             player.setMovingRight(false);
-        } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        } else if (input.isMoveRightPressed()) {
             targetVelocityX = Player.WALK_SPEED * controlFactor;
             player.setMovingRight(true);
         }
@@ -109,58 +113,19 @@ public class FallingState implements EntityState<Player> {
         }
     }
 
-    private boolean checkGroundCollision(Player player) {
-        Rectangle playerBounds = player.getBounds();
-        float sensorHeight = 8f;
-        
-        Rectangle mainSensor = new Rectangle(
-            playerBounds.x + playerBounds.width * 0.3f,
-            playerBounds.y - sensorHeight,
-            playerBounds.width * 0.4f,
-            sensorHeight
-        );
-        
-        Rectangle leftSensor = new Rectangle(
-            playerBounds.x + 2f,
-            playerBounds.y - sensorHeight,
-            6f,
-            sensorHeight
-        );
-        
-        Rectangle rightSensor = new Rectangle(
-            playerBounds.x + playerBounds.width - 8f,
-            playerBounds.y - sensorHeight,
-            6f,
-            sensorHeight
-        );
-        
-        for (Rectangle platform : player.getCollisionObjects()) {
-           final float TOLERANCE = 10f;
-
-            if ((mainSensor.overlaps(platform) ||
-                leftSensor.overlaps(platform) ||
-                rightSensor.overlaps(platform)) &&
-                player.getVelocity().y <= 0 &&
-                player.getCollisionBox().y >= platform.y + platform.height - TOLERANCE) {
-
-                player.getCollisionBox().y = platform.y + platform.height;
-                player.getVelocity().y = 0;
-                return true;
-            }
-
-
-        }
-        return false;
-    }
-
 
     @Override
     public void handleInput(Player player) {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.X)) {
+        // CAMBIO: Obtenemos el handler del jugador
+        InputHandler input = player.getInputHandler();
+
+        // CAMBIO: Usamos el handler abstracto para el ataque
+        if (input.isAttackJustPressed()) {
             player.getStateMachine().changeState(new FallingAttackState());
         }
         
-        if (Gdx.input.isKeyJustPressed(Input.Keys.DOWN) && !isFastFalling) {
+        // CAMBIO: Usamos el handler abstracto para la caída rápida
+        if (input.isMoveDownJustPressed() && !isFastFalling) {
             isFastFalling = true;
             player.getVelocity().y = MAX_FALL_SPEED;
         }

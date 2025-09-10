@@ -16,7 +16,7 @@ import com.FK.game.sounds.*;
 
 public class AttackingState implements EntityState<Player> {
     private float attackTimer = 0f;
-    private static final float ATTACK_DURATION = 0.3f;
+    private static final float ATTACK_DURATION = 0.415f;
     private static final float HITBOX_ACTIVATION_FRAME = 0.15f;
     private boolean hitboxActive = false;
     private Rectangle attackHitbox;
@@ -27,6 +27,7 @@ public class AttackingState implements EntityState<Player> {
         player.getDamageBox().set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
         player.setCurrentAnimation(player.isMovingRight() ? PlayerAnimationType.ATTACKING_RIGHT : PlayerAnimationType.ATTACKING_LEFT);
          SoundCache.getInstance().get(SoundType.SWORD).play(0.5f);
+         player.setDamage(0f);
         attackTimer = 0f;
         hitboxActive = false;
         attackHitbox = new Rectangle(
@@ -60,18 +61,23 @@ public class AttackingState implements EntityState<Player> {
     }
 
     private void handleEarlyMovement(Player player) {
-        if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+
+        InputHandler input = player.getInputHandler();
+
+        if (input.isMoveLeftPressed()) {
             player.setMovingRight(false);
             player.getVelocity().x = -Player.WALK_SPEED * 0.5f; 
         } 
-        else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+        else if (input.isMoveRightPressed()) {
             player.setMovingRight(true);
             player.getVelocity().x = Player.WALK_SPEED * 0.5f;
         }
     }
 
     private void transitionToNextState(Player player) {
-        boolean wantsToMove = Gdx.input.isKeyPressed(Input.Keys.LEFT) || Gdx.input.isKeyPressed(Input.Keys.RIGHT);
+        InputHandler input = player.getInputHandler();
+    
+        boolean wantsToMove = input.isMoveLeftPressed() || input.isMoveRightPressed();
         
         if (player.isOnGround()) {
             player.getStateMachine().changeState(
@@ -86,7 +92,6 @@ public class AttackingState implements EntityState<Player> {
                 Player.WALK_SPEED : -Player.WALK_SPEED;
         }
     }
-
     private void updateHitboxPosition(Player player) {
         attackHitbox.setPosition(
             player.getBounds().x + (player.isMovingRight() ? player.getBounds().width * 0.7f : -player.getBounds().width * 0.2f),
@@ -98,8 +103,9 @@ public class AttackingState implements EntityState<Player> {
 
     @Override
     public void handleInput(Player player) {
-        if (attackTimer >= ATTACK_DURATION * 0.7f && Gdx.input.isKeyJustPressed(Input.Keys.X)) {
-        }
+        //InputHandler input = player.getInputHandler();
+       // if (attackTimer >= ATTACK_DURATION * 0.7f && input.isAttackJustPressed()) {
+        //}
     }
 
     @Override
@@ -118,6 +124,7 @@ public class AttackingState implements EntityState<Player> {
 
     @Override
     public void exit(Player player) {
+        player.setDamage(3f);
         player.setDamageSize(0,0);
     }
 }
