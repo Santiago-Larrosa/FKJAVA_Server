@@ -33,8 +33,6 @@ public class BolbWalkState implements EntityState<Enemy> {
         Bolb bolb = (Bolb) enemy;
         bolb.getCurrentAnimation().update(delta);
 
-        Player player = GameContext.getPlayer();
-
         if (waitingToTurn) {
             waitTimer += delta;
             if (waitTimer >= waitDuration) {
@@ -74,14 +72,13 @@ public class BolbWalkState implements EntityState<Enemy> {
             bolb.getBounds().y + bolb.getCollisionBoxOffsetY()
         );
 
-        if (player != null && bolb.canAttack()) {
-            bolbPos.set(bolb.getBounds().x, bolb.getBounds().y);
-            playerPos.set(player.getBounds().x, player.getBounds().y);
-            float distance = bolbPos.dst(playerPos);
-            if (distance < 50f) {
-                bolb.getStateMachine().changeState(new BolbAttackState());
-            }
+        if (enemy.isPlayerInRange() && enemy.canAttack()) {
+            enemy.getStateMachine().changeState(new BolbAttackState());
+            return; // Cambiamos de estado, no necesitamos hacer más nada aquí
         }
+
+
+        
     }
 
     @Override

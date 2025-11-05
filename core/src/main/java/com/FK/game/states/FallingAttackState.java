@@ -12,6 +12,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class FallingAttackState implements EntityState<Player> {
     private boolean startedPassAnimation = false;
@@ -28,6 +29,7 @@ public class FallingAttackState implements EntityState<Player> {
         startedPassAnimation = true;
         passAnimationFinished = false;
         passTimer = 0f;
+        player.setStateMessage(StateMessage.PLAYER_FALLING_AND_ATTACKING);
         player.getDamageBox().set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
         player.setCurrentAnimation(player.isMovingRight()
             ? PlayerAnimationType.FALLING_ATACK_PASS

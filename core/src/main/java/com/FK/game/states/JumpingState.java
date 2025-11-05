@@ -8,6 +8,7 @@ import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.animations.*;
 import com.FK.game.core.*; 
 import com.FK.game.entities.*;
+import com.FK.game.network.*;
 
 public class JumpingState implements EntityState<Player> {
     private float airTime = 0f;
@@ -16,6 +17,7 @@ public class JumpingState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setStateMessage(StateMessage.PLAYER_JUMPING);
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.JUMPING_RIGHT : PlayerAnimationType.JUMPING_LEFT);
         if (player.isOnGround()) {

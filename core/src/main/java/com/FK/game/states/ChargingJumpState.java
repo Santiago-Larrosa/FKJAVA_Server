@@ -10,6 +10,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class ChargingJumpState implements EntityState<Player> {
     private float chargeTime = 0f;
@@ -20,6 +21,7 @@ public class ChargingJumpState implements EntityState<Player> {
      @Override
     public void enter(Player player) {
         chargeTime = 0;
+        player.setStateMessage(StateMessage.PLAYER_CHARGING_JUMP);
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.CHARGE_JUMP_RIGHT : 
             PlayerAnimationType.CHARGE_JUMP_LEFT);

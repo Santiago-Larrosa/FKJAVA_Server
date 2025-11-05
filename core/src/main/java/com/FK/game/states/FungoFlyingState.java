@@ -63,18 +63,9 @@ public class FungoFlyingState implements EntityState<Enemy> {
         }
         fungo.setPosition(fungo.getX() + fungo.getVelocity().x * delta, fungo.getY() + fungo.getVelocity().y * delta);
         animation.update(delta);
-        Player player = GameContext.getPlayer();
-        if (fungo.canAttack() && player != null) {
-            Rectangle detectionBox = new Rectangle(
-                fungo.getCollisionBox().x - (ATTACK_DETECTION_WIDTH / 2f) + (fungo.getCollisionBox().width / 2f),
-                fungo.getCollisionBox().y - ATTACK_DETECTION_HEIGHT,
-                ATTACK_DETECTION_WIDTH,
-                ATTACK_DETECTION_HEIGHT
-            );
-            if (detectionBox.overlaps(player.getCollisionBox())) {
-                fungo.getStateMachine().changeState(new FungopDiveAttackState());
-            }
-        }
+        if (fungo.isPlayerInRange() && fungo.canAttack()) {
+        fungo.getStateMachine().changeState(new FungopDiveAttackState());
+    }
     }
 
     @Override

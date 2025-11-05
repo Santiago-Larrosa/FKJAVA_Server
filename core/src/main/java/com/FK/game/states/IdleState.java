@@ -9,6 +9,7 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.network.*;
 
 
 public class IdleState implements EntityState<Player> {
@@ -17,6 +18,7 @@ public class IdleState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setStateMessage(StateMessage.PLAYER_IDLE);
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.IDLE_RIGHT : PlayerAnimationType.IDLE_LEFT);
     }

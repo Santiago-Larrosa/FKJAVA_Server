@@ -16,6 +16,7 @@ import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
+import com.FK.game.network.*;
 
 
 public class Player extends CharacterEntity<Player> {
@@ -41,7 +42,10 @@ public class Player extends CharacterEntity<Player> {
     private float fireCooldown = 0f;
     private InputHandler inputHandler;
     private static final float FIRE_ATTACK_COOLDOWN = 5f;
+    private float currentFireCooldown = 0f;
+    private boolean isFireCharged = false;
     private final PlayerData playerData;
+    private StateMessage stateMessage;
 
 
     public Player(MainGame game, InputHandler inputHandler, PlayerData playerData) { 
@@ -50,6 +54,7 @@ public class Player extends CharacterEntity<Player> {
         this.inputHandler = inputHandler; 
         this.playerData = playerData;  
         this.game = game;
+        this.fireCooldown = FIRE_ATTACK_COOLDOWN;
         setDamage(3);
         setKnockbackX(300f);
         setKnockbackY(400f);
@@ -60,7 +65,7 @@ public class Player extends CharacterEntity<Player> {
         for (PlayerAnimationType type : PlayerAnimationType.values()) {
             animations[type.ordinal()] = cache.createAnimation(type);
         }
-
+        this.stateMessage = StateMessage.PLAYER_IDLE;
         this.stateMachine = new EntityStateMachine<>(this, new IdleState());
         this.currentState = new IdleState();
         this.currentState.enter(this);
@@ -73,13 +78,14 @@ public class Player extends CharacterEntity<Player> {
         if (!movementLocked) {
             stateMachine.update(delta);
         }
+        
         super.update(delta); 
         debugPlatformDetection();
     }
-@Override
-public AnimationType getDeathAnimationType() {
-    return PlayerAnimationType.SMOKE;
-}
+    @Override
+    public AnimationType getDeathAnimationType() {
+        return PlayerAnimationType.SMOKE;
+    }
 
 
     public void render(Batch batch) {
@@ -88,6 +94,11 @@ public AnimationType getDeathAnimationType() {
         batch.draw(frame, bounds.x, bounds.y, bounds.width, bounds.height);
     }
 }
+
+    @Override
+    public AnimationType getDamageAnimationType() {
+        return isMovingRight() ? PlayerAnimationType.FALLING_RIGHT : PlayerAnimationType.FALLING_LEFT;
+    }
 
 
     public void setState(EntityState<Player> newState) {
@@ -102,7 +113,25 @@ public AnimationType getDeathAnimationType() {
 
  
 
+public void updateFireCooldown(float delta) {
+        if (fireCooldown > 0) {
+            fireCooldown -= delta;
+            if (fireCooldown < 0) {
+                fireCooldown = 0;
+                isFireCharged = true;
+            }
+            
+            
+        }
+        fireAttackHUD.updateFire(delta, isFireCharged);
+    }
 
+    public void setIsFireCharged(boolean charged) {
+        this.isFireCharged = charged;
+        if (isFireCharged == false) {
+            this.fireCooldown = FIRE_ATTACK_COOLDOWN;
+        }
+    }
 
     public boolean isAttackReady() {
         return this.fireAttackHUD.isAttackReady();
@@ -115,7 +144,7 @@ public AnimationType getDeathAnimationType() {
 
     public void startFireAttackCooldown() {
         this.fireCooldown = FIRE_ATTACK_COOLDOWN;
-        fireAttackHUD.resetCooldown(); 
+        this.isFireCharged = false;
     }
 
 
@@ -165,8 +194,9 @@ public void setCurrentAnimation(AnimationType animType) {
         this.collisionBox.y = y;
     }
 
-    public InputHandler getInputHandler() {
-        return this.inputHandler;
+    public NetworkInputHandler getInputHandler() {
+        NetworkInputHandler inputHandler = (NetworkInputHandler) this.inputHandler;
+        return inputHandler;
     }
 
     public Rectangle getDamageBox() {
@@ -179,7 +209,13 @@ public void setCurrentAnimation(AnimationType animType) {
     public FireAttackHUD getFireAttackHUD() {
         return fireAttackHUD;
     }
+    public void setStateMessage(StateMessage newMessage) {
+        this.stateMessage = newMessage;
+    } 
 
+    public StateMessage getStateMessage() {
+        return this.stateMessage;
+    }
     @Override
     public void setDamage (float newDamage) {
         this.damage = newDamage * this.damageAmplifier;

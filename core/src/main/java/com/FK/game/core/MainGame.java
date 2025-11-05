@@ -11,14 +11,19 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
+import com.FK.game.network.ServerThread;
+import com.FK.game.network.NetworkMessage;
 
 public class MainGame extends Game {
 
     public PlayerData playerData;
     public PlayerData playerData2;
-
+    public int roomsClearedCount = 0;
+    public ServerThread server;
     @Override
     public void create() {
+        server = new ServerThread();
+        server.start();
         Assets.load(); 
         Assets.manager.finishLoading();
         Assets.assignTextures();

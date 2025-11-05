@@ -38,9 +38,21 @@ public class InterlevelLoadingScreen implements Screen {
         shapeRenderer.end();
         
         if (elapsedTime >= DURATION) {
-            gameScreen.loadRandomGameMap();
-            game.setScreen(gameScreen);
-        }
+
+        // ✅ Elegimos el mapa
+        String nextMap = gameScreen.chooseNextMapName();
+
+        // ✅ Avisamos a los clientes qué mapa usan
+        game.server.sendPacketToAll("LEVEL_READY:" + nextMap);
+        System.out.println("[SERVER] Next map is: " + nextMap);
+
+
+        // ✅ El servidor carga ese mapa
+        gameScreen.loadSpecificMap(nextMap);
+
+        // ✅ Volver al juego
+        game.setScreen(gameScreen);
+    }
     }
 
     @Override

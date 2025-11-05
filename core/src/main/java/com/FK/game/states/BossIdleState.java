@@ -21,7 +21,9 @@ public class BossIdleState implements EntityState<Enemy> {
     @Override
     public void update(Enemy enemy, float delta) {
         attackTimer += delta;
-        if (attackTimer >= ATTACK_INTERVAL) {
+        if (attackTimer >= ATTACK_INTERVAL && enemy.isPlayerInRange()) {
+            ((Boss) enemy).acquireTarget(); 
+            // 2. Se inicia el estado de ataque
             enemy.getStateMachine().changeState(new BossLaserAttackState());
         }
     }

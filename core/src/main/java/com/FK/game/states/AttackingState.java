@@ -13,6 +13,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class AttackingState implements EntityState<Player> {
     private float attackTimer = 0f;
@@ -25,6 +26,7 @@ public class AttackingState implements EntityState<Player> {
     @Override
     public void enter(Player player) {
         player.getDamageBox().set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
+        player.setStateMessage(StateMessage.PLAYER_ATTACKING);
         player.setCurrentAnimation(player.isMovingRight() ? PlayerAnimationType.ATTACKING_RIGHT : PlayerAnimationType.ATTACKING_LEFT);
          SoundCache.getInstance().get(SoundType.SWORD).play(0.5f);
          player.setDamage(0f);

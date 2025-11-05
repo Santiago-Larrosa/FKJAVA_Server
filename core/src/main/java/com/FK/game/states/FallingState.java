@@ -12,6 +12,7 @@ import com.FK.game.animations.*;
 import com.FK.game.core.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
+import com.FK.game.network.*;
 
 public class FallingState implements EntityState<Player> {
     private float fallTime = 0f;
@@ -26,6 +27,7 @@ public class FallingState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setStateMessage(StateMessage.PLAYER_FALLING);
         player.setCurrentAnimation(player.isMovingRight() ? 
             PlayerAnimationType.FALLING_RIGHT : PlayerAnimationType.FALLING_LEFT);
         fallTime = 0f;

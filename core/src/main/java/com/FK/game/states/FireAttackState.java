@@ -8,6 +8,7 @@ import com.FK.game.animations.*;
 import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 
 public class FireAttackState implements EntityState<Player> {
@@ -31,6 +32,7 @@ public class FireAttackState implements EntityState<Player> {
 
     @Override
     public void enter(Player player) {
+        player.setStateMessage(StateMessage.PLAYER_FIRING);
         player.setDamage(0.5f);
        if (!player.isAttackReady()) {
         player.getStateMachine().changeState(new IdleState());
