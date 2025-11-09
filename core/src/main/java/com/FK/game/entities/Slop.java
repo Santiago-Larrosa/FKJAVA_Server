@@ -13,6 +13,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 import java.util.Random;
 public class Slop extends Enemy {
@@ -20,9 +21,11 @@ public class Slop extends Enemy {
     public Slop(Array<Rectangle> collisionObjects) {
         super(0, 0, 106, 75, 106, 75, collisionObjects);
         setCollisionBoxOffset(0f, 0f);
+        this.networkId = GameContext.getNextEntityId();
         setCurrentAnimation(EnemyAnimationType.SLOP);
         this.maxHealth = 3; 
         this.attackRange = 50f;
+        this.entityTypeMessage = EntityTypeMessage.SLOP;
         this.health = this.maxHealth; 
         setKnockbackX(100f);
         setKnockbackY(200f);

@@ -24,6 +24,8 @@ public class FireAttackHUD extends BaseHUD{
     private AnimationHandler loadedAnim;
     private AnimationHandler currentAnim;
     private AnimationHandler unloadingAnim;
+    final float HUD_WIDTH = 100f;
+    final float HUD_HEIGHT = 100f;
     
     private enum HUDState { UNLOADED, TRANSITION_TO_LOADED, LOADED, TRANSITION_TO_UNLOADED }
     private HUDState state = HUDState.UNLOADED;
@@ -81,6 +83,9 @@ public class FireAttackHUD extends BaseHUD{
         }
     }
 
+    public float getFireHudStateTime () {
+        return stateTime;
+    }
 
     private void changeState(HUDState newState, AnimationHandler newAnim) {
         state = newState;
@@ -95,14 +100,19 @@ public class FireAttackHUD extends BaseHUD{
         return state == HUDState.LOADED;
     }
 
+    public String getFireHudState () {
+        return state.toString();
+    }
+
    @Override
     public void render(SpriteBatch batch, OrthographicCamera camera) {
         if (currentAnim == null) return;
         TextureRegion frame = currentAnim.getCurrentFrame();
         if (frame == null || frame.getTexture() == null) return;
 
-        this.width = frame.getRegionWidth() * scale;
-        this.height = frame.getRegionHeight() * scale;
+        
+        this.width = HUD_WIDTH;
+        this.height = HUD_HEIGHT;
 
         calculatePosition(camera, 20f, 20f, true, true);
 

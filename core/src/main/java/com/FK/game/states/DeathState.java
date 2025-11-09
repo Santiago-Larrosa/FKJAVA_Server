@@ -6,12 +6,13 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.FK.game.animations.AnimationHandler;
 import com.badlogic.gdx.Gdx;
+import com.FK.game.network.*;
 
 public class DeathState implements EntityState<CharacterEntity> {
 
     @Override
     public void enter(CharacterEntity character) {
-
+        character.setStateMessage(StateMessage.DYING);
         character.getVelocity().set(0, 0);
         character.setCurrentAnimation(character.getDeathAnimationType());
         if (character.getCurrentAnimation() != null) {

@@ -15,6 +15,8 @@ import com.FK.game.core.GameContext;
 import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Boss; 
 import com.FK.game.entities.Player;
+import com.FK.game.network.*;
+import com.FK.game.animations.EnemyAnimationType;
 
 public class BossLaserAttackState implements EntityState<Enemy> {
 
@@ -38,12 +40,14 @@ public class BossLaserAttackState implements EntityState<Enemy> {
     @Override
 public void enter(Enemy enemy) {
     currentPhase = Phase.WARNING;
+    
     phaseTimer = 0f;
 
     // --- LÓGICA DE APUNTADO MEJORADA ---
     Boss boss = (Boss) enemy;
+    boss.setAnimation(EnemyAnimationType.BOLB);
     Player target = boss.getCurrentTarget(); // Obtenemos el objetivo que el Jefe ya decidió
-
+    boss.setStateMessage(StateMessage.BOSS_ATTACKING);
     if (target != null) {
         // Apuntamos al centro del objetivo
         targetPosition = target.getCenter();
@@ -54,6 +58,7 @@ public void enter(Enemy enemy) {
 
     Vector2 bossCenter = new Vector2(enemy.getX() + enemy.getWidth() / 2, enemy.getY() + enemy.getHeight() / 2);
     attackAngle = targetPosition.cpy().sub(bossCenter).angleDeg();
+    GameContext.getScreen().getGame().server.sendPacketToAll("BOSS_LASER:WARNING:" + attackAngle);
 }
 
     @Override
@@ -66,12 +71,14 @@ public void enter(Enemy enemy) {
                 if (phaseTimer >= WARNING_DURATION) {
                     phaseTimer = 0;
                     currentPhase = Phase.CHARGING;
+                    GameContext.getScreen().getGame().server.sendPacketToAll("BOSS_LASER:WARNING:" + attackAngle);
                 }
                 break;
             case CHARGING:
                 if (phaseTimer >= CHARGING_DURATION) {
                     phaseTimer = 0;
                     currentPhase = Phase.FIRING;
+                    GameContext.getScreen().getGame().server.sendPacketToAll("BOSS_LASER:FIRING:" + attackAngle);
                     createDamagePolygon(enemy); 
                 }
                 break;
@@ -81,10 +88,12 @@ public void enter(Enemy enemy) {
                     phaseTimer = 0;
                     currentPhase = Phase.COOLDOWN;
                     damagePolygon = null; 
+                    GameContext.getScreen().getGame().server.sendPacketToAll("BOSS_LASER:COOLDOWN");
                 }
                 break;
             case COOLDOWN:
                 if (phaseTimer >= COOLDOWN_DURATION) {
+                    GameContext.getScreen().getGame().server.sendPacketToAll("BOSS_LASER:END");
                     enemy.getStateMachine().changeState(new BossIdleState());
                 }
                 break;

@@ -9,15 +9,18 @@ import com.FK.game.entities.*;
 import com.FK.game.states.*;
 import com.FK.game.animations.*;
 import com.FK.game.core.GameContext;
+import com.FK.game.network.*;
 
 public class Fungop extends Enemy {
    
     public Fungop(Array<Rectangle> collisionObjects) {
         super(0, 0, 200, 269, 120, 150, collisionObjects);
         setCollisionBoxOffset(35f, 35f); 
+        this.networkId = GameContext.getNextEntityId();
         setDamage(2);
         setKnockbackX(200f);
         this.attackRange = 200f;
+        this.entityTypeMessage = EntityTypeMessage.FUNGOP;
         setKnockbackY(400f);
         this.maxHealth = 10; 
         this.health = this.maxHealth; 

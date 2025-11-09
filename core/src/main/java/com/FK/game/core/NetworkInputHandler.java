@@ -29,8 +29,10 @@ public class NetworkInputHandler implements InputHandler {
             case "STOP_JUMP" -> jump = false;
             case "INPUT_ATTACK" -> attack = true;
             case "STOP_ATTACK" -> attack = false;
-            case "INPUT_FIRE" -> fire = true;
+            case "INPUT_FIRE_ATTACK" -> fire = true;
+            case "STOP_FIRE_ATTACK" -> fire = false;
             case "INPUT_DOWN" -> down = true;
+            case "STOP_DOWN" -> down = false;
         }
     }
 

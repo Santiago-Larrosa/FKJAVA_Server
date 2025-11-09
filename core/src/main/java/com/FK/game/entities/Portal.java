@@ -14,6 +14,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class Portal extends Entity <Portal>{
     private EntityStateMachine<Portal> stateMachine;
@@ -22,7 +23,10 @@ public class Portal extends Entity <Portal>{
 
     public Portal(float x, float y) {
         super(x, y, 500f, 250f, 300f, 150f);
+        this.networkId = GameContext.getNextEntityId();
+        System.out.println("Portal created with Network ID: " + this.networkId);
         setCollisionBoxOffset(50f, 50f);
+        this.entityTypeMessage = EntityTypeMessage.PORTAL;
         initializeAnimations();
         setCurrentAnimation(ObjectsAnimationType.PORTAL_RISING);
         this.stateMachine = new EntityStateMachine<>(this, new PortalState());

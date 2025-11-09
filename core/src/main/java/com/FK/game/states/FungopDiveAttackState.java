@@ -11,6 +11,7 @@ import com.FK.game.core.GameContext;
 import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Player;
 import com.FK.game.screens.GameScreen;
+import com.FK.game.network.*;
 
 public class FungopDiveAttackState implements EntityState<Enemy> {
 
@@ -30,7 +31,7 @@ public class FungopDiveAttackState implements EntityState<Enemy> {
         fungo.setCanAttack(false);
         passTimer = 0f;
         passAnimationFinished = false;
-
+        fungo.setStateMessage(StateMessage.FUNGOP_ATTACKING);
         fungo.setCurrentAnimation(EnemyAnimationType.FUNGOP_PASS_ATTACK);
         fungo.getCurrentAnimation().reset();
         fungo.setHasWallAhead(false);
@@ -61,10 +62,12 @@ public class FungopDiveAttackState implements EntityState<Enemy> {
             if (diff < -180) diff += 360;
             
             currentRotation = startAngle + diff * progress;
+            fungo.setRotation(currentRotation);
 
             if (passTimer >= PASS_ANIMATION_DURATION) {
                 passAnimationFinished = true;
                 currentRotation = targetAngle; 
+                fungo.setRotation(currentRotation);
                 fungo.setCurrentAnimation(EnemyAnimationType.FUNGOP_ATTACK);
             }
         } else {
@@ -77,16 +80,15 @@ public class FungopDiveAttackState implements EntityState<Enemy> {
             );
 
             if (fungo.isOnPlataform() || fungo.hasWallAhead()) {
-                GameContext.getScreen().createImpactEffect(
+                /*GameContext.getScreen().createImpactEffect(
                     fungo.getCollisionBox().x + fungo.getCollisionBox().width / 2,
                     fungo.getCollisionBox().y
-                );
+                );*/
                 fungo.getStateMachine().changeState(new FungoFlyingState());
             }else {
                 fungo.getDamageBox().set(fungo.getX(), fungo.getY(), 120, 150);
             }
         }
-        
     }
 
     @Override

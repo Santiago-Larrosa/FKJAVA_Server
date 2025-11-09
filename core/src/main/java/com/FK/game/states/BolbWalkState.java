@@ -8,6 +8,7 @@ import com.FK.game.entities.Player;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.FK.game.network.*;
 
 
 public class BolbWalkState implements EntityState<Enemy> {
@@ -24,6 +25,7 @@ public class BolbWalkState implements EntityState<Enemy> {
     @Override
     public void enter(Enemy enemy) {
         Bolb bolb = (Bolb) enemy;
+        bolb.setStateMessage(StateMessage.BOLB_WALKING);    
         bolb.setAnimation(bolb.isMovingRight() ? EnemyAnimationType.BOLB : EnemyAnimationType.BOLB_LEFT);
         airConfirmationCount[0] = 0;
     }

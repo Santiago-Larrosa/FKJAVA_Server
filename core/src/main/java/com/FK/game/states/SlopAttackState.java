@@ -11,6 +11,7 @@ import com.FK.game.entities.Slop;
 import com.FK.game.entities.Player;
 import com.FK.game.entities.Slop;
 import com.FK.game.states.EntityState;
+import com.FK.game.network.*;
 
 public class SlopAttackState implements EntityState<Enemy> {
       private float attackTimer;
@@ -19,6 +20,7 @@ public class SlopAttackState implements EntityState<Enemy> {
     @Override
     public void enter(Enemy enemy) {
         Slop Slop = (Slop) enemy;
+        Slop.setStateMessage(StateMessage.SLOP_ATTACKING);
         Slop.setBoundSize(106, 128);
         attackTimer = 0f;
         Slop.setAnimation(Slop.isMovingRight() == true ? (EnemyAnimationType.SLOP_ATTACK) : (EnemyAnimationType.SLOP_ATTACK_LEFT));

@@ -13,6 +13,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 import java.util.Random;
 public class Boss extends Enemy {
@@ -21,7 +22,9 @@ public class Boss extends Enemy {
         super(0, 0, 1250, 1300, 1100, 1150, collisionObjects);
         setCollisionBoxOffset(100f, 0f);
         setDamage(1);
+        this.networkId = GameContext.getNextEntityId();
         this.attackRange = 1500f;
+        this.entityTypeMessage = EntityTypeMessage.BOSS;
         setHealth(50);
         setKnockbackX(100f);
         setKnockbackY(200f);

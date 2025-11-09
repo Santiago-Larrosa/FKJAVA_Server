@@ -8,6 +8,8 @@ import com.FK.game.entities.Player;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.FK.game.network.*;
+import com.FK.game.animations.EnemyAnimationType;
 
 public class BossIdleState implements EntityState<Enemy> {
     private float attackTimer;
@@ -16,6 +18,8 @@ public class BossIdleState implements EntityState<Enemy> {
     @Override
     public void enter(Enemy enemy) {
         attackTimer = 0f;
+        enemy.setAnimation(EnemyAnimationType.BOLB);
+        enemy.setStateMessage(StateMessage.BOSS_IDLE);
     }
 
     @Override

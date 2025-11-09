@@ -23,6 +23,9 @@ public class GameContext {
         }
     }
 
+    public static int getNextEntityId(){
+        return currentScreen.requestEntityId();
+    }
     public static void removePlayer(Player player) {
         activePlayers.removeValue(player, true);
     }

@@ -14,6 +14,7 @@ public class DamageState implements EntityState<CharacterEntity> {
 
     @Override
     public void enter(CharacterEntity character) {
+        character.setStateMessage(StateMessage.GETTING_DAMMAGE);
         character.getVelocity().set(character.getLastKnockback());
         this.knockbackTimer = 0.2f;
         character.setCurrentAnimation(character.getDamageAnimationType());

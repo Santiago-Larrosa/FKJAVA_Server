@@ -6,6 +6,7 @@ import com.FK.game.entities.Portal;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.Gdx;
+import com.FK.game.network.*;
 
 public class PortalState implements EntityState<Portal> {
     private boolean rising = true;
@@ -15,6 +16,7 @@ public class PortalState implements EntityState<Portal> {
     @Override
     public void enter(Portal portal) {
         portal.setAnimation(ObjectsAnimationType.PORTAL_RISING);
+        portal.setStateMessage(StateMessage.PORTAL);
         rising = true;
         risingTimer = 0f;
     }

@@ -14,6 +14,7 @@ import com.FK.game.entities.*;
 import com.FK.game.screens.*;
 import com.FK.game.states.*;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class Fire extends Entity <Fire>{
     protected AnimationHandler[] animations;
@@ -21,8 +22,10 @@ public class Fire extends Entity <Fire>{
 
     public Fire(float x, float y) {
         super(x, y, 400, 400f, 200f, 200f);
+        this.networkId = GameContext.getNextEntityId();
         setDamageSize(150, 150);
         setDamage(0);
+        this.entityTypeMessage = EntityTypeMessage.FIRE;
         setKnockbackX(100f);
         setKnockbackY(200f);
         initializeAnimations();

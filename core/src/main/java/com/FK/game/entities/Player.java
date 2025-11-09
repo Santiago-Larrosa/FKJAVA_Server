@@ -45,7 +45,9 @@ public class Player extends CharacterEntity<Player> {
     private float currentFireCooldown = 0f;
     private boolean isFireCharged = false;
     private final PlayerData playerData;
-    private StateMessage stateMessage;
+    private boolean nearFire = false;
+        private boolean upgradeMenuOpen = false;
+    
 
 
     public Player(MainGame game, InputHandler inputHandler, PlayerData playerData) { 
@@ -55,6 +57,7 @@ public class Player extends CharacterEntity<Player> {
         this.playerData = playerData;  
         this.game = game;
         this.fireCooldown = FIRE_ATTACK_COOLDOWN;
+        this.entityTypeMessage = EntityTypeMessage.PLAYER;
         setDamage(3);
         setKnockbackX(300f);
         setKnockbackY(400f);
@@ -99,7 +102,11 @@ public class Player extends CharacterEntity<Player> {
     public AnimationType getDamageAnimationType() {
         return isMovingRight() ? PlayerAnimationType.FALLING_RIGHT : PlayerAnimationType.FALLING_LEFT;
     }
+public boolean isNearFire() { return nearFire; }
+public void setNearFire(boolean v) { nearFire = v; }
 
+public boolean isUpgradeMenuOpen() { return upgradeMenuOpen; }
+public void setUpgradeMenuOpen(boolean v) { upgradeMenuOpen = v; }
 
     public void setState(EntityState<Player> newState) {
         currentState.exit(this);
@@ -133,6 +140,14 @@ public void updateFireCooldown(float delta) {
         }
     }
 
+    public boolean isFireCharged() {
+        return this.isFireCharged;
+    }
+
+    public PlayerData getPlayerData() {
+        return playerData;
+    }
+
     public boolean isAttackReady() {
         return this.fireAttackHUD.isAttackReady();
     }
@@ -146,7 +161,6 @@ public void updateFireCooldown(float delta) {
         this.fireCooldown = FIRE_ATTACK_COOLDOWN;
         this.isFireCharged = false;
     }
-
 
     public PlayerAnimationType getCurrentAnimationType() {
         return currentType;
@@ -209,13 +223,9 @@ public void setCurrentAnimation(AnimationType animType) {
     public FireAttackHUD getFireAttackHUD() {
         return fireAttackHUD;
     }
-    public void setStateMessage(StateMessage newMessage) {
-        this.stateMessage = newMessage;
-    } 
+    
 
-    public StateMessage getStateMessage() {
-        return this.stateMessage;
-    }
+    
     @Override
     public void setDamage (float newDamage) {
         this.damage = newDamage * this.damageAmplifier;

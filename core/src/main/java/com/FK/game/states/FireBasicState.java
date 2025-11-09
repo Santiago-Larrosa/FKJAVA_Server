@@ -5,11 +5,13 @@ import com.FK.game.animations.ObjectsAnimationType;
 import com.FK.game.entities.Fire; 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.FK.game.network.*;
 
 public class FireBasicState implements EntityState<Fire> {
 
     @Override
     public void enter(Fire fire) {
+        fire.setStateMessage(StateMessage.FIRE);
         fire.setCurrentAnimation(ObjectsAnimationType.FIRE_LOOP);
     }
 

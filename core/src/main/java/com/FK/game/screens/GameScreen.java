@@ -37,6 +37,7 @@
     import com.badlogic.gdx.graphics.g2d.BitmapFont;
     import com.badlogic.gdx.graphics.g2d.ParticleEffect;
     import com.FK.game.network.*;
+    import java.net.InetSocketAddress;
 
     
 
@@ -50,7 +51,6 @@
         private Player player2;
         private Array<BaseHUD> hudElements;
         private BitmapFont hudFont;
-        private Texture coinTexture;
         private boolean isCameraMoving = false;
         private float cameraMoveStartX, cameraMoveStartY;
         private float cameraMoveTargetX, cameraMoveTargetY;
@@ -78,7 +78,7 @@
         private Portal portal;
         private InputHandler player1Controls = new NetworkInputHandler();
         private Array<Player> players = new Array<>();
-
+        private Array<Entity> syncedEntities = new Array<>();
         private InputHandler player2Controls = new NetworkInputHandler();
         private Texture whitePixelTexture;
         private TextureRegion whitePixelRegion; 
@@ -98,6 +98,7 @@
         public GameScreen(MainGame game) {
             this.game = game;
         }
+        
 
     @Override
         public void show() {
@@ -107,6 +108,7 @@
             if (isFirstRun) {
                 isFirstRun = false;
             entities = new Array<>();
+            syncedEntities = new Array<>();
             enemies = new Array<>();
             activeEffects = new Array<>();
             GameContext.setScreen(this);
@@ -114,18 +116,15 @@
             viewport = new StretchViewport(WORLD_WIDTH * 0.7f, WORLD_HEIGHT * 0.7f, camera);
             viewport.apply();
             camera.position.set(WORLD_WIDTH/2 * 0.7f, WORLD_HEIGHT/2 * 0.7f, 0);
-            whitePixelTexture = new Texture("white_pixel.jpg");//-
+            whitePixelTexture = Assets.whitePixel;  
             whitePixelRegion = new TextureRegion(whitePixelTexture);
             if (!AnimationCache.getInstance().update()) {
                 game.setScreen(new LoadingScreen(game));
                 return;
             }
-            groundImpactEffectTemplate = new ParticleEffect();
-            groundImpactEffectTemplate.load(Gdx.files.internal("ground_impact.p"), Gdx.files.internal(""));
-            uiSkin = new Skin(Gdx.files.internal("ui/glassy-ui.json"));
+            uiSkin = UIAssets.glassySkin;
             uiStage = new Stage(new ScreenViewport());
             hudFont = new BitmapFont();
-            coinTexture = new Texture("coin.png");//-
             loadInitialMap(); 
             }
             Gdx.input.setInputProcessor(null);
@@ -133,8 +132,10 @@
 
         private void loadInitialMap() {
             game.roomsClearedCount = 0;
-            cleanUpCurrentMap();
             
+
+            cleanUpCurrentMap();
+
             MapManager mapManager = new MapManager(0.7f);
             mapManager.loadMaps("maps/SpawnHall.tmx");
             map = mapManager.getMaps().first();
@@ -150,24 +151,43 @@
         }
 
         private void checkPortalCollision() {
-            if (portal != null && player1 != null && !player1.isDead()) {
-                if (player1.getCollisionBox().overlaps(portal.getCollisionBox())) {
-                    SoundCache.getInstance().stopAllSounds();
-                    game.roomsClearedCount++;
-                    player1.updatePlayerData();
-                    if (player2 != null) player2.updatePlayerData();
-                    game.server.sendPacketToAll("CHANGE_LEVEL");    
-                    game.setScreen(new InterlevelLoadingScreen(game, this));
+    if (portal == null) return;
+
+    // Recorremos todos los jugadores activos (en modo local o red)
+    for (Player player : GameContext.getActivePlayers()) {
+        if (player == null || player.isDead()) continue;
+
+        // Si cualquier jugador toca el portal
+        if (player.getCollisionBox().overlaps(portal.getCollisionBox())) {
+            SoundCache.getInstance().stopAllSounds();
+            game.roomsClearedCount++;
+
+            // Actualizamos datos de todos los jugadores vivos
+            for (Player p : GameContext.getActivePlayers()) {
+                if (p != null && !p.isDead()) {
+                    p.updatePlayerData();
                 }
             }
+
+            // Notificamos a todos los clientes para cambiar de nivel
+            if (game.server != null) {
+                game.server.sendPacketToAll("CHANGE_LEVEL");
+            }
+
+            // Cargamos la pantalla de transición
+            game.setScreen(new InterlevelLoadingScreen(game, this));
+            break; // Evitamos múltiples activaciones simultáneas
         }
+    }
+}
+
 
         public MainGame getGame() {
             return game;
         }   
         public void loadSpecificMap(String mapName) {
             FireAttackHUD existingHUD = player1 != null ? player1.getFireAttackHUD() : null;
-
+            
             cleanUpCurrentMap();
 
             MapManager mapManager = new MapManager(0.7f);
@@ -189,6 +209,8 @@
             MapManager mapManager = new MapManager(0.7f);
             Array<String> commonRooms = new Array<>();
             commonRooms.add("maps/room3.tmx");
+            commonRooms.add("maps/room4.tmx");
+            commonRooms.add("maps/room5.tmx");
             commonRooms.add("maps/room6.tmx");
             String bossRoom = "maps/BossHall.tmx";
 
@@ -214,25 +236,39 @@
         private void cleanUpCurrentMap() {
             if (map != null) map.dispose();
             if (mapRenderer != null) mapRenderer.dispose();
+            clearAllEntitiesAndNotify();
             collisionObjects.clear();
             entities.clear();
+            syncedEntities.clear();
             enemies.clear();
             players.clear();
             portal = null;
             portalSpawnPoint = null;
         }
-    private void openUpgradeMenu() {
-            if (player1 != null) {
-            player1.getStateMachine().changeState(new IdleState());
+        public UpgradeManager getUpgradeManager() {
+            return upgradeManager;
+        }
+        public void clearAllEntitiesAndNotify() {
+            for (Entity e : syncedEntities) {
+                int id = e.getNetworkId();
+                game.server.sendPacketToAll("REMOVE_ENTITY:" + id);
+            }
         }
 
-            upgradeWindow = new UpgradeWindow(uiSkin, this::closeUpgradeMenu, game.playerData, upgradeManager);
+    private void openUpgradeMenu(Player player) {
+            if (player != null) {
+            player.getStateMachine().changeState(new IdleState());
+        }   
+        System.out .println("Abriendo menú de mejoras...");
+        player.setUpgradeMenuOpen(true);
+            upgradeWindow = new UpgradeWindow(uiSkin, this::closeUpgradeMenu, player.getPlayerData(), upgradeManager);
             uiStage.addActor(upgradeWindow);
             upgradeWindow.centerWindow();
             Gdx.input.setInputProcessor(uiStage);
         }
 
-        private void closeUpgradeMenu() {
+        public void closeUpgradeMenu() {
+            System.out .println("Cerrando menú de mejoras...");
             currentState = GameState.RUNNING;
             upgradeWindow.remove(); 
             Gdx.input.setInputProcessor(null); 
@@ -272,7 +308,7 @@
                 player2.setFireAttackHUD(fireHUD2); 
                 hudElements.add(fireHUD);
 
-                CoinHUD coinHUD1 = new CoinHUD(game.playerData, coinTexture, hudFont);
+                CoinHUD coinHUD1 = new CoinHUD(game.playerData, Assets.coinTexture, hudFont);
                 hudElements.add(coinHUD1);
                 GameContext.addPlayer(player1); 
                 GameContext.addPlayer(player2); 
@@ -283,6 +319,7 @@
                 bolb.setPosition(spawn.x, spawn.y);
                 enemies.add(bolb);
                 entities.add(bolb);
+                syncedEntities.add(bolb);
             }
 
             for (Rectangle spawn : slopSpawns) {
@@ -290,6 +327,7 @@
                 slop.setPosition(spawn.x, spawn.y);
                 enemies.add(slop);
                 entities.add(slop);
+                syncedEntities.add(slop);
             }
 
             for (Rectangle spawn : fungopSpawns) {
@@ -297,6 +335,7 @@
                 fungop.setPosition(spawn.x, spawn.y);
                 enemies.add(fungop);
                 entities.add(fungop);
+                syncedEntities.add(fungop);
             }
 
             for (Rectangle spawn : bossSpawns) {
@@ -304,12 +343,15 @@
                 boss.setPosition(spawn.x, spawn.y);
                 enemies.add(boss);
                 entities.add(boss);
+                syncedEntities.add(boss);
             }
 
             for (Rectangle spawn : fireSpawns) {
-            Fire fire = new Fire(spawn.x, spawn.y);
-            entities.add(fire);
-        }
+                Fire fire = new Fire(spawn.x, spawn.y);
+                entities.add(fire);
+                syncedEntities.add(fire);
+        
+            }
         }
         private void loadCollisionObjects(float scale) {
             MapLayer collisionLayer = map.getLayers().get("Capa de Objetos 1");
@@ -337,7 +379,7 @@
             if (id < 0 || id >= players.size) return null;
             return players.get(id);
         }
-// ---
+// ---portal
     private void updateEntities(float delta) {
         
 
@@ -349,6 +391,22 @@
             if (e instanceof Player) {
                 Player player = (Player) e;
                 player.updateFireCooldown(delta); // Cooldown de disparo
+                // Cuando el fuego termina de cargarse:
+                
+                int index = players.indexOf(player, true);
+                /*if (player.isFireCharged()) {
+                     game.server.sendPacketTo(index, "FIRE_READY");
+                     System.out.println("[SERVER] Jugador " + index + " tiene fuego listo.");
+                }else {
+                    game.server.sendPacketTo(index, "FIRE_COOLDOWN");
+                    System.out.println("[SERVER] Jugador " + index + " en cooldown de fuego.");
+                }*/
+
+
+                String stateName = player.getFireAttackHUD().getFireHudState();
+                float stateTime = player.getFireAttackHUD().getFireHudStateTime();
+                game.server.sendPacketTo(index, "HUD_FIRE_STATE:" + stateName + ":" + stateTime);
+
             }
             if (e instanceof CharacterEntity<?>) {
                 // Cooldown de invencibilidad
@@ -362,30 +420,48 @@
 
             // --- 2. LÓGICA DE MUERTE Y ELIMINACIÓN (de "Versión Actual") ---
             if (e instanceof Entity && e.isReadyForRemoval()) {
-                
+
+                int idToRemove = ((Entity) e).getNetworkId();
+
                 // Si muere un Jugador
                 if (e instanceof Player) {
-                    Player deadPlayer = (Player) e;
+                    handlePlayerDeath((Player) e);
+                    return;
                 }
-                
+
+
                 // Si muere un Enemigo
                 if (e instanceof Enemy) {
                     Enemy en = (Enemy) e;
                     Rectangle spawnArea = en.getCollisionBox();
-                    // ¡El Servidor SÍ crea las monedas!
                     for (int j = 0; j < en.getCoinValue(); j++) {
                         float spawnX = MathUtils.random(spawnArea.x, spawnArea.x + spawnArea.width);
                         float spawnY = MathUtils.random(spawnArea.y, spawnArea.y + spawnArea.height);
                         Coin coin = new Coin(spawnX, spawnY);
                         entities.add(coin);
+                        syncedEntities.add(coin);
                     }
                     enemies.removeValue(en, true);
                 }
 
                 // Eliminar la entidad del servidor
                 entities.removeIndex(i);
-                continue; // Saltar al siguiente bucle
+                for (int j = 0; j < syncedEntities.size; j++) {
+                    Entity ent = syncedEntities.get(j);
+                    if (ent.getNetworkId() == idToRemove) {
+                        syncedEntities.removeIndex(j);
+                        break;
+                    }
+                }
+
+
+                // 🔸 Notificar a los clientes que deben borrar la entidad
+                String removeMsg = "REMOVE_ENTITY:" + idToRemove;
+                game.server.sendPacketToAll(removeMsg);
+
+                continue; // pasar al siguiente elemento
             }
+
             
             
             // --- 3. LÓGICA DE FÍSICA Y COLISIÓN (de "Versión Vieja") ---
@@ -452,32 +528,100 @@
 
             // --- 4. LÓGICA DE MONEDAS (Atracción y Colección) (de "Versión Actual") ---
             if (e instanceof Coin) {
-                Coin coin = (Coin) e;
+    Coin coin = (Coin) e;
 
-                // A. Lógica de Atracción (encontrar objetivo)
-                if (coin.getTarget() == null) {
-                    Player closestPlayer = null;
-                    float minDistance = Float.MAX_VALUE;
-                    Vector2 coinCenter = coin.getCenter();
-                    coin.setTarget(closestPlayer);
-                }
-                if (coin.getTarget() != null && coin.getCollisionBox().overlaps(coin.getTarget().getCollisionBox())) {
-                    Player targetPlayer = (Player) coin.getTarget();
-                    e.setReadyForRemoval(true);
-                }
-            }
+    // Si aún no tiene target (jugador objetivo)
+    if (coin.getTarget() == null) {
+        Vector2 coinCenter = coin.getCenter();
+
+        float distP1 = (player1 != null && !player1.isDead())
+            ? player1.getCenter().dst(coinCenter)
+            : Float.MAX_VALUE;
+
+        float distP2 = (player2 != null && !player2.isDead())
+            ? player2.getCenter().dst(coinCenter)
+            : Float.MAX_VALUE;
+
+        if (distP1 <= distP2) {
+            coin.setTarget(player1);
+        } else {
+            coin.setTarget(player2);
+        }
+    }
+
+    // Comprobar colisión con el jugador para recolectarla
+    if (coin.getTarget() != null && coin.getCollisionBox().overlaps(coin.getTarget().getCollisionBox())) {
+        Player targetPlayer = coin.getTarget();
+        targetPlayer.addCoins(1);
+        e.setReadyForRemoval(true);
+        int index = players.indexOf(targetPlayer, true);
+            game.server.sendPacketTo(index, "COIN_PICKED:" + targetPlayer.getCoinCount());
+
+    }
+}
+
+
         } // --- Fin del bucle de entidades ---
+        for (int i = 0; i < syncedEntities.size; i++) {
+            Entity e = syncedEntities.get(i);
+                    int id = e.getNetworkId(); // implementar esto
+                    String type = e.getTypeName(); 
+                    float x = e.getX();
+                    float y = e.getY();
+                    float rotation = 0f;
 
-        
+                    String state = "NONE";
+                    String facing = "NONE";
+
+                    state = e.getStateMessage().toString();
+                    facing = e.isMovingRight() ? "RIGHT" : "LEFT";
+
+                    if (e instanceof Enemy && ((Enemy)e).hasRotation()) {
+                        rotation = ((Enemy)e).getRotation();
+                    }
+
+                    
+
+                    String msg = "UPDATE_ENTITY:" + id + ":" + type + ":" +
+                                x + ":" + y + ":" + state + ":" + facing + ":" + rotation;
+                   // System.out.println("Sending entity update: " + msg);
+                    game.server.sendPacketToAll(msg);
+        }
+
         checkEntityDamage(); 
         if (enemies.isEmpty() && portal == null && portalSpawnPoint != null) {
             portal = new Portal(portalSpawnPoint.x, portalSpawnPoint.y);
             entities.add(portal);
+            syncedEntities.add(portal);
             String msg = "CREATE_ENTITY:PORTAL:" + portalSpawnPoint.x + ":" + portalSpawnPoint.y;
         }
         checkPortalCollision();
     }
     
+            public void sendFullEntitySnapshotTo(InetSocketAddress targetAddress) {
+    for (Entity e : syncedEntities) {
+        int id = e.getNetworkId(); // implementar esto
+                    String type = e.getTypeName(); 
+                    float x = e.getX();
+                    float y = e.getY();
+                    float rotation = 0f;
+
+                    String state = "NONE";
+                    String facing = "NONE";
+
+                    state = e.getStateMessage().toString();
+                    facing = e.isMovingRight() ? "RIGHT" : "LEFT";
+
+                    if (e instanceof Enemy && ((Enemy)e).hasRotation()) {
+                        rotation = ((Enemy)e).getRotation();
+                    }
+
+      String msg = "CREATE_ENTITY:" + id + ":" + type + ":" +
+               x + ":" + y + ":" + state + ":" + facing + ":" + rotation;
+        game.server.sendPacket(msg, targetAddress);
+    }
+}
+
 
 
         private void checkEntityDamage() {
@@ -494,16 +638,71 @@
 
                     if (damageBox.overlaps(target.getCollisionBox())) {                    
                         if (attacker instanceof Player && target instanceof Fire ) {
-                            openUpgradeMenu();
+                            Player player = (Player) attacker;
+                            int index = players.indexOf(player, true);
+                            if (!player.isNearFire() || !player.isUpgradeMenuOpen()) {
+                                player.getInputHandler().handleNetworkInput("STOP_ATTACK");
+                                System.out.println("Jugador abrio el menú de mejoras cerca del fuego.");
+                                game.server.sendPacketTo(index, "OPEN_UPGRADE_MENU");
+                                openUpgradeMenu(player);
+                            }
+                            
                         } else {
                             if (target instanceof CharacterEntity) {
                                 ((CharacterEntity) target).receiveDamage(attacker);
                             }
                         }
+                    }else if (attacker instanceof Player) {
+                        // Cuando sale del área del fuego
+                        ((Player) attacker).setNearFire(false);
                     }
                 }
             }
         }
+
+        private void handlePlayerDeath(Player deadPlayer) {
+            System.out.println("[SERVER] Jugador muerto: " + deadPlayer.getNetworkId());
+            deadPlayer.getGame().playerData.resetOnDeath();
+            if (deadPlayer.getGame().playerData2 != null) {
+                deadPlayer.getGame().playerData2.resetOnDeath();
+            }
+
+            int index = players.indexOf(deadPlayer, true);
+            if (game.server != null) {
+                if (index >= 0) {
+                    game.server.sendPacketToAll("PLAYER_DIED:" + index);
+                }
+                game.server.sendPacketToAll("CHANGE_LEVEL");
+                game.server.sendPacketToAll("LEVEL_READY:maps/SpawnHall.tmx");
+            }
+
+            game.roomsClearedCount = 0;
+            GameContext.clearPlayers();
+            game.setScreen(new GameScreen(game));
+        }
+
+        public int requestEntityId() {
+    return game.server.generateEntityId();
+}
+private Player getClosestAlivePlayer(Vector2 from) {
+    Player best = null;
+    float bestDist2 = Float.MAX_VALUE;
+
+    // Si tenés un Array<Player> players:
+    for (Player p : players) {
+        if (p != null && !p.isDead()) {
+            float d2 = p.getCenter().dst2(from);
+            if (d2 < bestDist2) {
+                bestDist2 = d2;
+                best = p;
+            }
+        }
+    }
+
+    // (Si no tenés lista y usás player1/player2, evaluá ambos acá)
+    return best;
+}
+
 
         private Array<Rectangle> loadSpawnPoints(String layerName, float scale) {
         Array<Rectangle> spawnPoints = new Array<>();
@@ -525,7 +724,7 @@
         }
         return spawnPoints;
     }
-
+/*
     public void createImpactEffect(float x, float y) {
             if (groundImpactEffectTemplate == null) return;
             ParticleEffect effect = new ParticleEffect(groundImpactEffectTemplate);
@@ -533,16 +732,10 @@
             effect.start();
             activeEffects.add(effect);
         }
-
+*/
     @Override
         public void render(float delta) {
-            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-                if (currentState == GameState.RUNNING) {
-                    openUpgradeMenu();
-                } else {
-                    closeUpgradeMenu();
-                }
-            }
+          
             if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
                 game.setScreen(new MenuScreen(game));
                 return;
@@ -666,6 +859,8 @@
             uiStage.getViewport().update(width, height, true);
         }
 
+        
+
         @Override
         public void pause() {}
 
@@ -681,17 +876,19 @@
             for (Entity e : entities) {
                 e.dispose();
             }   
+            for (Entity e : syncedEntities) {
+                e.dispose();
+            }
             map.dispose();
             mapRenderer.dispose();
             collisionObjects.clear();
-            if (groundImpactEffectTemplate != null) {
+           /* if (groundImpactEffectTemplate != null) {
                 groundImpactEffectTemplate.dispose();
-            }
+            }*/
             for (ParticleEffect effect : activeEffects) {
                 effect.dispose();
             }
             hudFont.dispose();
-            coinTexture.dispose();
             uiStage.dispose();
             whitePixelTexture.dispose();
             uiSkin.dispose();

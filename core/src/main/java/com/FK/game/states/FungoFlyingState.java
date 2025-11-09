@@ -9,6 +9,7 @@ import com.FK.game.core.GameContext;
 import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Player;
 import com.FK.game.sounds.*;
+import com.FK.game.network.*;
 
 public class FungoFlyingState implements EntityState<Enemy> {
 
@@ -28,6 +29,7 @@ public class FungoFlyingState implements EntityState<Enemy> {
     @Override
     public void enter(Enemy fungo) {
         fungo.setCurrentAnimation(EnemyAnimationType.FUNGOP);
+        fungo.setStateMessage(StateMessage.FUNGOP_FLIYING);
         SoundCache.getInstance().startSpatialLoop(SoundType.FLAP, fungo);
         this.isMovingRight = true;
         fungo.getVelocity().x = HORIZONTAL_SPEED;

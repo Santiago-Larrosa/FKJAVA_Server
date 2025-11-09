@@ -11,6 +11,7 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.FK.game.animations.AnimationHandler;
 import com.FK.game.states.*;
+import com.FK.game.network.*;
 
 public abstract class Entity<T extends Entity<T>> {
     protected Rectangle bounds;
@@ -28,6 +29,7 @@ public abstract class Entity<T extends Entity<T>> {
     protected float knockBackForceY = 0;
     protected int health;
     protected float knockbackTimer = 0f;
+    protected int networkId = -1;
     protected EntityStateMachine<T> stateMachine;
     protected AnimationHandler currentAnimation;
     protected AnimationHandler[] animations;
@@ -35,6 +37,9 @@ public abstract class Entity<T extends Entity<T>> {
     protected Array<Rectangle> collisionObjects;
     protected float damage = 0;
     private boolean hasWallAhead;
+    protected StateMessage stateMessage;
+    protected EntityTypeMessage entityTypeMessage = EntityTypeMessage.ENTITY;
+    protected float rotation = 0f;
 
     public Entity(float x, float y, float width, float height, float CollisionBoxWidth, float colisionBoxHeight) {
         bounds = new Rectangle(x, y, width, height);
@@ -104,7 +109,14 @@ public abstract class Entity<T extends Entity<T>> {
         }
     }
 
-    
+
+    public float getRotation() { return rotation; }
+    public void setRotation(float rotation) { this.rotation = rotation; }
+    public boolean hasRotation() { return true; }
+
+    public void setStateMessage(StateMessage newMessage) {
+        this.stateMessage = newMessage;
+    } 
 
     public void renderDebug(ShapeRenderer renderer) {
         renderer.setColor(Color.BLUE);
@@ -222,6 +234,10 @@ public abstract class Entity<T extends Entity<T>> {
         this.currentAnimation = animation;
     }
 
+    public StateMessage getStateMessage() {
+        return this.stateMessage;
+    }
+
     public AnimationHandler getCurrentAnimation() {
         return currentAnimation;
     }
@@ -307,6 +323,17 @@ public abstract class Entity<T extends Entity<T>> {
         return DamageBox;
     }
 
+    public void setNetworkId(int id) {
+    this.networkId = id;
+}
+
+public int getNetworkId() {
+    return networkId;
+}
+
+    public String getTypeName () {
+        return this.entityTypeMessage.toString();
+    }
     public Vector2 getCenter() {
         return new Vector2(
             bounds.x + bounds.width / 2,

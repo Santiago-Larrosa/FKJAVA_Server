@@ -10,6 +10,7 @@ import com.FK.game.entities.Player;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.FK.game.network.*;
 
 
 public class SlopWalkState implements EntityState<Enemy> {
@@ -25,6 +26,7 @@ public class SlopWalkState implements EntityState<Enemy> {
     @Override
     public void enter(Enemy enemy) {
         Slop slop = (Slop) enemy;
+        slop.setStateMessage(StateMessage.SLOP_WALKING);
         slop.setCurrentAnimation(slop.isMovingRight() ? EnemyAnimationType.SLOP : EnemyAnimationType.SLOP_LEFT);
         airConfirmationCount[0] = 0;
     }

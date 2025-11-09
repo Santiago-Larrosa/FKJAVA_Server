@@ -20,18 +20,45 @@ public class MainGame extends Game {
     public PlayerData playerData2;
     public int roomsClearedCount = 0;
     public ServerThread server;
+    private static MainGame instance;
+
+public MainGame() {
+    instance = this;
+}
     @Override
     public void create() {
-        server = new ServerThread();
-        server.start();
-        Assets.load(); 
-        Assets.manager.finishLoading();
-        Assets.assignTextures();
+       // server = new ServerThread();
+       // server.start();
+        UIAssets.load();
         playerData = new PlayerData();
         playerData2 = new PlayerData();
-        setScreen(new LoadingScreen(this));
+        setScreen(new ServerLauncherScreen(this));
+    }
+
+    public void returnToServerLauncher() {
+    if (server != null) {
+        server.stopServer(); // o tu método para cerrar el hilo
+        server = null;
+    }
+    setScreen(new ServerLauncherScreen(this));
+    System.out.println("[MAIN] Volviendo a pantalla inicial del servidor.");
+}
+public static void onWindowClosed() {
+    System.out.println("[MAIN] Cierre detectado desde ventana.");
+    try {
+        if (instance != null && instance.server != null) {
+            instance.server.stopServer();
+            System.out.println("[MAIN] Servidor detenido por cierre de ventana.");
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
     }
 }
+
+
+}
+
+
 
 //./gradlew build
 //./gradlew :lwjgl3:run
