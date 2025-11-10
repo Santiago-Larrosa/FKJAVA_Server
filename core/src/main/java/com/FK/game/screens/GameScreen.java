@@ -93,7 +93,7 @@
         private Stage uiStage;
         private Skin uiSkin;
         private UpgradeWindow upgradeWindow;
-        
+        private ServerDisconnectWindow serverDisconnectWindow;
         private UpgradeManager upgradeManager;
         public GameScreen(MainGame game) {
             this.game = game;
@@ -265,8 +265,15 @@
             uiStage.addActor(upgradeWindow);
             upgradeWindow.centerWindow();
             Gdx.input.setInputProcessor(uiStage);
+        }   
+    private void openExitMenu() {
+        System.out .println("Abriendo menú de salida");
+            ServerDisconnectWindow
+            serverDisconnectWindow = new ServerDisconnectWindow(uiSkin, game, game.server);
+            uiStage.addActor(serverDisconnectWindow);
+            serverDisconnectWindow.centerWindow();
+            Gdx.input.setInputProcessor(uiStage);
         }
-
         public void closeUpgradeMenu() {
             System.out .println("Cerrando menú de mejoras...");
             currentState = GameState.RUNNING;
@@ -585,6 +592,9 @@
                     String msg = "UPDATE_ENTITY:" + id + ":" + type + ":" +
                                 x + ":" + y + ":" + state + ":" + facing + ":" + rotation;
                    // System.out.println("Sending entity update: " + msg);
+                   if (e instanceof Coin) {
+                        System.out.println("Sending Coin update: " + msg);
+                   }
                     game.server.sendPacketToAll(msg);
         }
 
@@ -736,10 +746,14 @@ private Player getClosestAlivePlayer(Vector2 from) {
     @Override
         public void render(float delta) {
           
-            if (Gdx.input.isKeyPressed(Input.Keys.ESCAPE)) {
-                game.setScreen(new MenuScreen(game));
-                return;
+            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            if (game.server != null) { // Solo si estás ejecutando como servidor
+                if (serverDisconnectWindow == null || !serverDisconnectWindow.hasParent()) {
+                    openExitMenu();
+                }
             }
+        }
+
 
             updateEntities(delta);
             updateCamera(delta);

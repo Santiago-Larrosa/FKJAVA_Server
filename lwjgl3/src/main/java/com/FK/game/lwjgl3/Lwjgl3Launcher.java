@@ -9,7 +9,6 @@ public class Lwjgl3Launcher {
     public static void main(String[] args) {
         createApplication();
     }
-
     private static Lwjgl3Application createApplication() {
         Lwjgl3ApplicationConfiguration config = getDefaultConfiguration();
 
@@ -18,9 +17,11 @@ public class Lwjgl3Launcher {
             @Override
             public boolean closeRequested() {
                 System.out.println("[HOOK] Ventana cerrada — ejecutando limpieza manual.");
-                ServerThread server = GameContext.getScreen().getGame().server;
-                server.broadcastServerShutdown();
-                server.stopServer();
+                ServerThread server = GameContext.getLauncherScreen().getGame().server;
+                if (server != null){
+                    server.broadcastServerShutdown();
+                    server.stopServer();
+                }
                 MainGame.onWindowClosed();
                 System.exit(0);
                 return true; // permite el cierre

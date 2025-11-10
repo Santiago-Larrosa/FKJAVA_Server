@@ -11,6 +11,7 @@ public class GameContext {
     private static Player player;
 
     private static GameScreen currentScreen;
+    private static ServerLauncherScreen currentLauncherScreen;
     private static final Array<Player> activePlayers = new Array<>();
 
     public static Array<Player> getActivePlayers() {
@@ -48,5 +49,13 @@ public class GameContext {
 
     public static GameScreen getScreen() {
         return currentScreen;
+    }
+
+    public static void setLauncherScreen(ServerLauncherScreen screen) {
+        currentLauncherScreen = screen;
+    }
+
+    public static ServerLauncherScreen getLauncherScreen() {
+        return currentLauncherScreen;
     }
 }

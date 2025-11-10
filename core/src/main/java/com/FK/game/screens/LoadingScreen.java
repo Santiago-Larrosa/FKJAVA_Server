@@ -51,6 +51,7 @@ public class LoadingScreen implements Screen {
         shapeRenderer.rect(100, 150, 400 * progress, 30);
         shapeRenderer.end();
         if (progress >= 0.99f) {
+            game.roomsClearedCount = 0;
             game.setScreen(new GameScreen(game));
         }
     }

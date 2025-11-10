@@ -14,6 +14,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.FK.game.core.MainGame;
 import com.FK.game.network.ServerThread;
 import com.FK.game.animations.UIAssets;
+import com.FK.game.core.GameContext;
 
 public class ServerLauncherScreen implements Screen {
 
@@ -32,6 +33,7 @@ public class ServerLauncherScreen implements Screen {
         stage = new Stage(new ScreenViewport());
         Gdx.input.setInputProcessor(stage);
         skin = UIAssets.glassySkin;
+        GameContext.setLauncherScreen(this);
 
         Label title = new Label("Servidor del Juego", skin, "default");
         title.setAlignment(Align.center);
@@ -68,6 +70,10 @@ public class ServerLauncherScreen implements Screen {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         stage.act(delta);
         stage.draw();
+    }
+
+    public MainGame getGame() {
+        return game;
     }
 
     @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }

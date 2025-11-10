@@ -18,6 +18,7 @@ import com.FK.game.core.UpgradeManager;
 import java.util.List;
 import java.util.ArrayList;
 import com.badlogic.gdx.Gdx;
+import com.FK.game.screens.*;
 
 public class ServerThread extends Thread {
     private static final int PORT = 54555;
@@ -141,6 +142,11 @@ public class ServerThread extends Thread {
 
         if (client == null) {
             if (msg.equals("CONNECT")) {
+                if (clientsById.size() >= 2) {
+                    System.out.println("[SERVER] Rechazando conexión: límite de jugadores alcanzado.");
+                    sendPacket("SERVER_FULL", address);
+                    return;
+                }
                 int assignedId;
                     if (!releasedIds.isEmpty()) {
                         assignedId = releasedIds.remove(0); // 🔁 reutiliza la primera ID disponible
@@ -180,6 +186,11 @@ public class ServerThread extends Thread {
                             sendPacket(joinedSnapshot, existingClient.address);
                         }
                     }
+                    if (clientsById.size() == 2) {
+                        System.out.println("[SERVER] Dos jugadores conectados — enviando READY a todos los clientes.");
+                        sendPacketToAll("GAME_READY");
+                    }
+
                 }
                 
 
@@ -236,13 +247,8 @@ public class ServerThread extends Thread {
             if (removed != null) {
                 clientsByAddress.remove(removed.address);
                 releasedIds.add(id);
-                System.out.println("[SERVER] Jugador desconectado: " + id);
-                if (clientsById.isEmpty()) {
-                    nextId = 1;
-                    releasedIds.clear();
-                    System.out.println("[SERVER] Todos los jugadores desconectados. IDs reiniciadas.");
-                    notifyServerEmpty();
-            }
+                clearServer();
+            
         }
 
     }
@@ -252,6 +258,16 @@ public class ServerThread extends Thread {
         sendPacket("CHANGE_MAP:" + mapName, c.address);
     }*/
 }
+
+    public void clearServer () {
+        nextId = 1;
+        releasedIds.clear();
+        sendPacketToAll("DISCONNECT");
+        System.out.println("[SERVER] Todos los jugadores desconectados. IDs reiniciadas.");
+        notifyServerEmpty();
+    }
+
+
 public void sendPacketToAll(String msg) {
     for (ConnectedClient c : clientsById.values()) {
         sendPacket(msg, c.address);
@@ -326,13 +342,30 @@ public void sendPacketToAll(String msg) {
 
     private void notifyServerEmpty() {
     Gdx.app.postRunnable(() -> {
-        if (GameContext.getScreen().getGame() != null) {
-            GameContext.getScreen().getGame().playerData.resetOnReload();
-            GameContext.getScreen().getGame().playerData2.resetOnReload();
-            GameContext.getScreen().getGame().returnToServerLauncher();
+        MainGame game = GameContext.getScreen().getGame();
+        if (game != null) {
+            System.out.println("[SERVER] Todos los jugadores desconectados. Reiniciando servidor...");
+
+            // 🧹 Limpieza total del contexto
+            GameScreen oldScreen = (GameScreen) GameContext.getScreen();
+            if (oldScreen != null) {
+                System.out.println("[SERVER] GameScreen anterior eliminado.");
+            }
+
+            GameContext.clearPlayers();
+            GameContext.setScreen(null); // evitar referencias colgantes
+
+            // 🔁 Reiniciar datos globales
+            game.playerData.resetOnReload();
+            game.playerData2.resetOnReload();
+            game.roomsClearedCount = 0;
+
+            // ✅ Volver a la pantalla del lanzador
+            game.setScreen(new ServerLauncherScreen(game));
         }
     });
 }
+
 
 
     private String buildPlayerUpdateMessage(int id, Player player) {

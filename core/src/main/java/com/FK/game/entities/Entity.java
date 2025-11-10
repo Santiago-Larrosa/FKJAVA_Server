@@ -341,9 +341,20 @@ public int getNetworkId() {
         );
     }   
 
-    public void dispose() {
+ 
+public void dispose() {
+    if (animations != null) {
         for (AnimationHandler animation : animations) {
-            if (animation != null) animation.dispose();
+            if (animation != null) {
+                try {
+                    animation.dispose();
+                } catch (Exception e) {
+                    System.err.println("[Entity] Error disposing animation: " + e.getMessage());
+                }
+            }
         }
+        animations = null; // helps GC and avoids double-dispose
     }
+}
+
 }
