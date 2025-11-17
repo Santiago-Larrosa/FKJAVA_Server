@@ -6,12 +6,12 @@ import com.FK.game.animations.AnimationHandler;
 import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.animations.EnemyAnimationType;
 import com.FK.game.core.GameContext;
-import com.FK.game.entities.Enemy;
+import com.FK.game.entities.Fungop;
 import com.FK.game.entities.Player;
 import com.FK.game.sounds.*;
 import com.FK.game.network.*;
 
-public class FungoFlyingState implements EntityState<Enemy> {
+public class FungoFlyingState implements EntityState<Fungop> {
 
     private final float HORIZONTAL_SPEED = 70f;
     private final float FLAP_FORCE = 200f;
@@ -27,7 +27,7 @@ public class FungoFlyingState implements EntityState<Enemy> {
     private int lastFrameIndex = -1;
 
     @Override
-    public void enter(Enemy fungo) {
+    public void enter(Fungop fungo) {
         fungo.setCurrentAnimation(EnemyAnimationType.FUNGOP);
         fungo.setStateMessage(StateMessage.FUNGOP_FLIYING);
         SoundCache.getInstance().startSpatialLoop(SoundType.FLAP, fungo);
@@ -39,7 +39,7 @@ public class FungoFlyingState implements EntityState<Enemy> {
     }
 
     @Override
-    public void update(Enemy fungo, float delta) {
+    public void update(Fungop fungo, float delta) {
         AnimationHandler animation = fungo.getCurrentAnimation();
         int currentFrameIndex = animation.getCurrentFrameIndex();
         fungo.getVelocity().y += fungo.getGravity() * delta;
@@ -71,15 +71,15 @@ public class FungoFlyingState implements EntityState<Enemy> {
     }
 
     @Override
-    public void render(Enemy fungo, Batch batch) {
+    public void render(Fungop fungo, Batch batch) {
         TextureRegion frame = fungo.getCurrentAnimation().getCurrentFrame();
         float rotation = isMovingRight ? -TILT_ANGLE : TILT_ANGLE;
         batch.draw(frame, fungo.getX(), fungo.getY(), fungo.getWidth() / 2f, fungo.getHeight() / 2f,
                    fungo.getWidth(), fungo.getHeight(), 1f, 1f, rotation);
     }
     
-    @Override public void exit(Enemy fungo) {
+    @Override public void exit(Fungop fungo) {
         SoundCache.getInstance().stopSpatialLoop(SoundType.FLAP);
     }
-    @Override public void handleInput(Enemy entity) {}
+    @Override public void handleInput(Fungop entity) {}
 }

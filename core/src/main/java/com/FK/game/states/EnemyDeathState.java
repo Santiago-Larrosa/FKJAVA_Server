@@ -6,17 +6,17 @@ import com.FK.game.entities.Enemy;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 
-public class EnemyDeathState implements EntityState<Enemy> {
+public class EnemyDeathState<E extends Enemy<E>> implements EntityState<E> {
 
     @Override
-    public void enter(Enemy enemy) {
+    public void enter(E enemy) {
         enemy.getVelocity().set(0, 0);
         enemy.setCurrentAnimation(EnemyAnimationType.SMOKE); 
         enemy.getCurrentAnimation().reset();
     }
 
     @Override
-    public void update(Enemy enemy, float delta) {
+    public void update(E enemy, float delta) {
         enemy.getCurrentAnimation().update(delta);
 
         if (enemy.getCurrentAnimation().isFinished()) {
@@ -26,7 +26,7 @@ public class EnemyDeathState implements EntityState<Enemy> {
     }
 
     @Override
-    public void render(Enemy enemy, Batch batch) {
+    public void render(E enemy, Batch batch) {
         TextureRegion frame = enemy.getCurrentAnimation().getCurrentFrame();
         batch.draw(frame, 
                    enemy.getX(), 
@@ -35,6 +35,6 @@ public class EnemyDeathState implements EntityState<Enemy> {
                    enemy.getHeight());
     }
 
-    @Override public void exit(Enemy enemy) {}
-    @Override public void handleInput(Enemy enemy) {}
+    @Override public void exit(E enemy) {}
+    @Override public void handleInput(E enemy) {}
 }

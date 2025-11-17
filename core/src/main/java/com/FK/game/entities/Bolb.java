@@ -16,7 +16,7 @@ import com.FK.game.sounds.*;
 import com.FK.game.network.*;
 
 import java.util.Random;
-public class Bolb extends Enemy {
+public class Bolb extends Enemy<Bolb> {
     
     public Bolb(Array<Rectangle> collisionObjects) {
         super(0, 0, 250, 300, 100, 150, collisionObjects);
@@ -46,7 +46,6 @@ public class Bolb extends Enemy {
 
         for (Player player : GameContext.getActivePlayers()) {
             if (player != null && !player.isDead()) {
-                // El Bolb usa una detección simple por distancia (radio)
                 if (this.getCenter().dst(player.getCenter()) < this.attackRange) {
                     this.isPlayerInRange = true;
                     return;
@@ -56,11 +55,11 @@ public class Bolb extends Enemy {
     }
 
     @Override
-    protected EnemyDamageState createDamageState(Entity source) {
-        return new EnemyDamageState(source);
+    protected EnemyDamageState<Bolb> createDamageState(Entity source) {
+        return new EnemyDamageState<>(source);
     }
     @Override
-    public EntityState<Enemy> getDefaultState() {
+    public EntityState<Bolb> createDefaultState() {
         return new BolbWalkState();
     }
     @Override

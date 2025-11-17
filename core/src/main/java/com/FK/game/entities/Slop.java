@@ -16,7 +16,7 @@ import com.FK.game.sounds.*;
 import com.FK.game.network.*;
 
 import java.util.Random;
-public class Slop extends Enemy {
+public class Slop extends Enemy<Slop> {
     
     public Slop(Array<Rectangle> collisionObjects) {
         super(0, 0, 106, 75, 106, 75, collisionObjects);
@@ -36,21 +36,16 @@ public class Slop extends Enemy {
     }
     
     @Override
-    protected EnemyDamageState createDamageState(Entity source) {
-        return new EnemyDamageState(source);
+    protected EnemyDamageState<Slop> createDamageState(Entity source) {
+        return new EnemyDamageState<>(source);
     }
 @Override
     public void updatePlayerDetection() {
-        // Por defecto, asumimos que no hay nadie en rango
         this.isPlayerInRange = false;
-
-        // Recorremos la lista de jugadores activos
         for (Player player : GameContext.getActivePlayers()) {
             if (player != null && !player.isDead()) {
-                // El Slop usa una detección simple por distancia (radio)
                 if (this.getCenter().dst(player.getCenter()) < this.attackRange) {
                     this.isPlayerInRange = true;
-                    // Encontramos un objetivo, no necesitamos seguir buscando
                     return;
                 }
             }
@@ -58,13 +53,12 @@ public class Slop extends Enemy {
     }
     @Override
 public AnimationType getDamageAnimationType() {
-    // La misma lógica, pero con los tipos de animación del enemigo.
     return isMovingRight() ? EnemyAnimationType.SLOP : EnemyAnimationType.SLOP_LEFT;
 }
 
     @Override
-    public EntityState<Enemy> getDefaultState() {
-        return (EntityState<Enemy>) new SlopWalkState();
+    public EntityState<Slop> createDefaultState() {
+        return new SlopWalkState();
     }
     @Override
     public String toString() {

@@ -3,17 +3,14 @@ package com.FK.game.states;
 import com.badlogic.gdx.Gdx;
 import com.FK.game.animations.*;
 import com.FK.game.core.*;
-import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Slop;
-import com.FK.game.entities.Slop;
-import com.FK.game.entities.Player;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.FK.game.network.*;
 
 
-public class SlopWalkState implements EntityState<Enemy> {
+public class SlopWalkState implements EntityState<Slop> {
     
         private float waitTimer = 0f;
     private boolean waitingToTurn = false;
@@ -24,22 +21,20 @@ public class SlopWalkState implements EntityState<Enemy> {
     private final Vector2 playerPos = new Vector2();
 
     @Override
-    public void enter(Enemy enemy) {
-        Slop slop = (Slop) enemy;
+    public void enter(Slop slop) {
         slop.setStateMessage(StateMessage.SLOP_WALKING);
         slop.setCurrentAnimation(slop.isMovingRight() ? EnemyAnimationType.SLOP : EnemyAnimationType.SLOP_LEFT);
         airConfirmationCount[0] = 0;
     }
 
      @Override
-    public void update(Enemy enemy, float delta) {
-        Slop slop = (Slop) enemy;
+    public void update(Slop slop, float delta) {
         slop.getCurrentAnimation().update(delta);
         
         // --- NUEVA LÓGICA DE ATAQUE (SIMPLE Y LIMPIA) ---
         // Primero, comprobamos si debemos atacar.
-        if (enemy.isPlayerInRange() && enemy.canAttack()) {
-            enemy.getStateMachine().changeState(new SlopAttackState());
+        if (slop.isPlayerInRange() && slop.canAttack()) {
+            slop.getStateMachine().changeState(new SlopAttackState());
             return; // Si atacamos, no necesitamos movernos en este frame.
         }
 
@@ -59,12 +54,12 @@ public class SlopWalkState implements EntityState<Enemy> {
         slop.getVelocity().x = slop.isMovingRight() ? slop.getSpeed() : -slop.getSpeed();
         slop.getBounds().x += slop.getVelocity().x * delta;
 
-        if (!waitingToTurn && (slop.hasWallAhead() || (!hasGroundAhead(slop) && !edgeDetected))) {
+        if (!waitingToTurn && (slop.hasWallAhead() || (!StateUtils.hasGroundAhead(slop) && !edgeDetected))) {
             waitingToTurn = true;
             waitTimer = 0f;
         }
 
-        if (hasGroundAhead(slop)) {
+        if (StateUtils.hasGroundAhead(slop)) {
             edgeDetected = false;
         }
 
@@ -80,8 +75,7 @@ public class SlopWalkState implements EntityState<Enemy> {
     }
 
     @Override
-    public void render(Enemy enemy, Batch batch) {
-        Slop slop = (Slop) enemy;
+    public void render(Slop slop, Batch batch) {
         if (slop.getCurrentAnimation() != null && slop.getCurrentAnimation().getCurrentFrame() != null) {
             batch.draw(slop.getCurrentAnimation().getCurrentFrame(),
                 slop.getX(), slop.getY(),
@@ -90,44 +84,13 @@ public class SlopWalkState implements EntityState<Enemy> {
     }
 
     @Override
-    public void handleInput(Enemy enemy) {}
+    public void handleInput(Slop enemy) {}
 
     @Override
-    public void exit(Enemy enemy) {}
+    public void exit(Slop enemy) {}
 
-    private boolean isWallAhead(Slop slop) {
-        float checkX = slop.isMovingRight()
-            ? slop.getCollisionBox().x + slop.getCollisionBox().width + 1
-            : slop.getCollisionBox().x - 1;
-
-        float checkY = slop.getCollisionBox().y;
-        float checkHeight = slop.getCollisionBox().height;
-
-        Rectangle checkArea = new Rectangle(checkX, checkY, 1, checkHeight);
-
-        for (Rectangle platform : slop.getCollisionObjects()) {
-            if (checkArea.overlaps(platform)) return true;
-        }
-
-        return false;
-    }
+ 
 
 
-    private boolean hasGroundAhead(Slop slop) {
-    float checkX = slop.isMovingRight() 
-        ? slop.getCollisionBox().x + slop.getCollisionBox().width + 5 
-        : slop.getCollisionBox().x - 5;
     
-    Rectangle checkArea = new Rectangle(
-        checkX,
-        slop.getCollisionBox().y - 15, 
-        10, 
-        15
-    );
-    
-    for (Rectangle platform : slop.getCollisionObjects()) {
-        if (checkArea.overlaps(platform)) return true;
-    }
-    return false;
-}
 }

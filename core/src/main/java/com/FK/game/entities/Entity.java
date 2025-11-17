@@ -46,6 +46,7 @@ public abstract class Entity<T extends Entity<T>> {
         velocity = new Vector2();
         collisionBox = new Rectangle(x, y, CollisionBoxWidth, colisionBoxHeight);
         this.DamageBox = new Rectangle(bounds.x, bounds.y, 0, 0);
+        this.collisionObjects = new Array<Rectangle>();
     }
 
     public void update(float delta) {
@@ -353,7 +354,7 @@ public void dispose() {
                 }
             }
         }
-        animations = null; // helps GC and avoids double-dispose
+        animations = null;
     }
 }
 

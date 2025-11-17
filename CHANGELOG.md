@@ -2,6 +2,21 @@
 
 Este archivo sigue el formato de [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/) y documenta todos los cambios importantes realizados en el proyecto. Las versiones siguen el esquema [SemVer](https://semver.org/lang/es/).
 
+## [3.1.0] - 2025-11-16
+### Added
+- `MainGame` ahora instala un `UncaughtExceptionHandler` que cierra el `ServerThread` de forma controlada para mantener al servidor como única autoridad cuando el cliente se cae.
+- Se agregó la carpeta `docs/` con el informe técnico (`informe_fkjava.md` + `.pdf`) que detalla explícitamente la división de responsabilidades entre servidor (simulación/autoridad) y clientes (render/UI).
+
+### Changed
+- `ServerThread` usa nuevos puertos (56555/56556), deja de instanciar `RemotePlayer` y simplifica `ConnectedClient`, reforzando que solo el servidor simula y los clientes son espectadores remotos.
+- `GameScreen` corre en modo headless: se elimina el renderizado de mapa/shape renderer y el bucle se concentra en actualizar entidades, cámara y UI mínima para herramientas de servidor, dejando el render al cliente.
+- `Player` inicializa sus animaciones mediante `AnimationCache`, obtiene el daño real desde `PlayerData` y los estados (`AttackingState`, `FireAttackState`, `FallingAttackState`) dejan de manipular `setDamage`. `StateUtils` centraliza `hasGroundAhead` para compartir lógica entre enemigos.
+- `PlayerData` arranca y resetea con 1000 monedas para pruebas de upgrades, y `UpgradeWindow`/`UpgradeManager` siguen siendo exclusivos del servidor cuando el cliente lo solicita.
+
+### Fixed
+- `SoundCache.updateSpatialLoops` ahora itera por índice, reutiliza un `Vector2` temporal y evita el crasheo `#iterator() cannot be used nested` al aplicar audio espacial en el servidor.
+- `Entity` inicializa `collisionObjects` por defecto y los chequeos de daño en `GameScreen` impiden que un jugador hiera a otro, además de bloquear la apertura del menú de mejoras cuando el jugador está en `FireAttackState`.
+
 ## [3.0.0] - 2025-08-03
 ### Added
 - Nuevos estados del jugador con animaciones propoas.

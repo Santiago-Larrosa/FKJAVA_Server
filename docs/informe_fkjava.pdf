@@ -1,0 +1,418 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 3467 >>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(INFORME TÉCNICO ? FURNACEKNIGHTJAVA \(SERVIDOR\)) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. Resumen ejecutivo) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(El repositorio implementa la versión servidor de FurnaceKnightJAVA, un juego 2D construido) Tj
+0 -14 Td
+(sobre libGDX. La lógica central vive en el módulo `core`, mientras que `lwjgl3` contiene el) Tj
+0 -14 Td
+(lanzador de escritorio. El servidor actúa como autoridad: simula el mundo, ejecuta la IA,) Tj
+0 -14 Td
+(resuelve colisiones y transmite el estado a los clientes mediante UDP. Las decisiones clave del) Tj
+0 -14 Td
+(diseño son:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? Pantallas de libGDX para separar el lanzador, la carga de recursos y el gameplay) Tj
+0 -14 Td
+(\(`ServerLauncherScreen`, `LoadingScreen`, `GameScreen`, `InterlevelLoadingScreen`\).) Tj
+0 -14 Td
+(? Una arquitectura de entidades con máquinas de estados \(`EntityStateMachine`\) que controla) Tj
+0 -14 Td
+(jugadores y enemigos.) Tj
+0 -14 Td
+(? Sincronización ligera basada en mensajes de texto \(`UPDATE_PLAYER`, `CREATE_ENTITY`,) Tj
+0 -14 Td
+(`HUD_FIRE_STATE`, etc.\) enviada desde `ServerThread`.) Tj
+0 -14 Td
+(? Un flujo de progresión con mapas Tiled, portales entre salas y un sistema de mejoras) Tj
+0 -14 Td
+(financiado con monedas del juego.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(2. Arquitectura del proyecto) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **MainGame \(`core/src/main/java/com/FK/game/core/MainGame.java`\)** orquesta el ciclo de vida) Tj
+0 -14 Td
+(de libGDX: carga UI skins, crea dos `PlayerData`, inicia la pantalla de lanzamiento y mantiene) Tj
+0 -14 Td
+(referencia al `ServerThread`. Un `UncaughtExceptionHandler` garantiza que cualquier error) Tj
+0 -14 Td
+(detendrá el servidor limpiamente.) Tj
+0 -14 Td
+(? **Módulo `core`** contiene gameplay, red, UI y assets. **`lwjgl3`** expone la aplicación de) Tj
+0 -14 Td
+(escritorio que arranca `MainGame`.) Tj
+0 -14 Td
+(? **GameContext \(`core/src/main/java/com/FK/game/core/GameContext.java`\)** centraliza) Tj
+0 -14 Td
+(referencias globales a la pantalla activa, la sala del lanzador y la lista de jugadores vivos,) Tj
+0 -14 Td
+(además de asignar IDs de red para nuevas entidades.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(3. Flujo de arranque y pantallas) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(1. **ServerLauncherScreen** ofrece un botón para iniciar el servidor) Tj
+0 -14 Td
+(\(`core/src/main/java/com/FK/game/screens/ServerLauncherScreen.java`\). Al pulsarlo crea) Tj
+0 -14 Td
+(`ServerThread`, guarda la instancia en `MainGame` y avanza a `LoadingScreen`.) Tj
+0 -14 Td
+(2. **LoadingScreen \(`core/src/main/java/com/FK/game/screens/LoadingScreen.java`\)** bloquea) Tj
+0 -14 Td
+(hasta que `Assets`, `AnimationCache` y `SoundCache` cargan todas las texturas y sonidos.) Tj
+0 -14 Td
+(3. **GameScreen \(`core/src/main/java/com/FK/game/screens/GameScreen.java`\)** es la pantalla) Tj
+0 -14 Td
+(principal. Configura cámara, viewport y HUD, carga mapas Tiled mediante `MapManager` y genera) Tj
+0 -14 Td
+(entidades según capas de spawn. Al detectar que se completó una sala crea un portal que, al) Tj
+0 -14 Td
+(tocarlo, manda a los clientes a `InterlevelLoadingScreen` y selecciona el siguiente mapa.) Tj
+0 -14 Td
+(4. **InterlevelLoadingScreen** \(misma ruta\) cubre la carga entre salas, elige aleatoriamente el) Tj
+0 -14 Td
+(próximo `.tmx` \(con probabilidad especial para salas de jefe tras dos habitaciones\) y notifica) Tj
+0 -14 Td
+(`LEVEL_READY:<mapa>` antes de devolver el control a `GameScreen`.) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Contents 2 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 3398 >>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+() Tj
+0 -14 Td
+(4. Gestión de datos compartidos del jugador) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **PlayerData \(`core/src/main/java/com/FK/game/core/PlayerData.java`\)** guarda monedas,) Tj
+0 -14 Td
+(niveles de salud y daño, y puntos de vida actuales. Sus métodos calculan daño/vida máxima y) Tj
+0 -14 Td
+(reinician progresión al morir o reiniciar sala.) Tj
+0 -14 Td
+(? **UpgradeManager \(`core/src/main/java/com/FK/game/core/UpgradeManager.java`\)** aplica la) Tj
+0 -14 Td
+(economía: calcula costos crecientes y actualiza `PlayerData`. Se usa tanto en el HUD local como) Tj
+0 -14 Td
+(en las solicitudes remotas de `ServerThread`.) Tj
+0 -14 Td
+(? **UpgradeWindow y ServerDisconnectWindow \(`core/src/main/java/com/FK/game/ui/*.java`\)** son) Tj
+0 -14 Td
+(ventanas Scene2D para gestionar upgrades en la hoguera y finalizar sesiones.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(5. Recursos y presentación audiovisual) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **Assets \(`core/src/main/java/com/FK/game/animations/Assets.java`\)** carga texturas básicas y) Tj
+0 -14 Td
+(expone referencias estáticas \(jugador idle, monedas, píxel blanco para Rayos del jefe, etc.\).) Tj
+0 -14 Td
+(? **AnimationCache \(`core/src/main/java/com/FK/game/core/AnimationCache.java`\)** se encarga de) Tj
+0 -14 Td
+(cargar todos los `AnimationType` \(jugador, enemigos, objetos\) y entregar `AnimationHandler`) Tj
+0 -14 Td
+(instanciados.) Tj
+0 -14 Td
+(? **UIAssets \(`core/src/main/java/com/FK/game/animations/UIAssets.java`\)** carga el skin) Tj
+0 -14 Td
+(`glassy-ui`.) Tj
+0 -14 Td
+(? **SoundCache \(`core/src/main/java/com/FK/game/sounds/SoundCache.java`\)** encapsula los) Tj
+0 -14 Td
+(sonidos \(`SoundType`\) y su reproducción espacial/loop, lo que permite disparos direccionales y) Tj
+0 -14 Td
+(pasos continuos.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(6. Entrada, jugador y HUD) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **InputHandler** abstrae la fuente de entrada \(`KeyboardInputHandler` para pruebas locales y) Tj
+0 -14 Td
+(`NetworkInputHandler` para inputs remotos enviados desde `ServerThread`\).) Tj
+0 -14 Td
+(? **Player \(`core/src/main/java/com/FK/game/entities/Player.java`\)** extiende `CharacterEntity`) Tj
+0 -14 Td
+(y monta su máquina de estados \(`IdleState`, `WalkingState`, `ChargingJumpState`, etc.\).) Tj
+0 -14 Td
+(Gestiona cooldown del ataque de fuego, aplica `PlayerData`, mantiene un `FireAttackHUD` y) Tj
+0 -14 Td
+(sincroniza `StateMessage`+`FacingDirection` para la red.) Tj
+0 -14 Td
+(? **FireAttackHUD y CoinHUD \(`core/src/main/java/com/FK/game/screens/*.java`\)** representan el) Tj
+0 -14 Td
+(estado de carga del ataque de fuego y el contador de monedas. El HUD usa animaciones dedicadas) Tj
+0 -14 Td
+(para mostrar transiciones \(carga/descarga\) y recibe actualizaciones periódicas enviadas por) Tj
+0 -14 Td
+(`GameScreen`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(7. Sistema de entidades y estados) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **Entity \(`core/src/main/java/com/FK/game/entities/Entity.java`\)** define bounding boxes,) Tj
+0 -14 Td
+(físicas básicas, cajas de daño y metadatos de red \(`EntityTypeMessage`, `StateMessage`,) Tj
+0 -14 Td
+(`networkId`\).) Tj
+0 -14 Td
+(? **CharacterEntity \(`core/src/main/java/com/FK/game/entities/CharacterEntity.java`\)** añade) Tj
+0 -14 Td
+(salud, knockback e integración con `EntityStateMachine`. Cambia a `DamageState` o `DeathState`) Tj
+0 -14 Td
+(dependiendo del resultado del ataque.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 3756 >>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(? **Enemy \(`core/src/main/java/com/FK/game/entities/Enemy.java`\)** carga animaciones) Tj
+0 -14 Td
+(específicas \(`EnemyAnimationType`\), detecta jugadores cercanos y maneja `attackCooldown`.) Tj
+0 -14 Td
+(Variantes como `Bolb`, `Slop`, `Fungop` o `Boss` definen sus propios estados \(por ejemplo) Tj
+0 -14 Td
+(`BolbWalkState`, `BossLaserAttackState`\).) Tj
+0 -14 Td
+(? **State framework \(`core/src/main/java/com/FK/game/states/*.java`\)**: `EntityState` dicta la) Tj
+0 -14 Td
+(interfaz, `EntityStateMachine` ejecuta `handleInput`+`update` cada frame y `StateUtils` ayuda) Tj
+0 -14 Td
+(con lógica común \(detección de caída, chequeo de suelo\). Las clases de estado cambian) Tj
+0 -14 Td
+(animaciones, reproducen sonidos y modifican velocidad.) Tj
+0 -14 Td
+(? **Objetos especiales**: `Portal` y `Fire` tienen sus propias máquinas de estados) Tj
+0 -14 Td
+(\(`PortalState`, `FireBasicState`\) basadas en `ObjectsAnimationType`, mientras que `Coin` se) Tj
+0 -14 Td
+(desplaza hacia el jugador objetivo.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(8. Pantalla de juego, mapas y lógica de actualización) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(`GameScreen` concentra las responsabilidades más pesadas:) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **Carga de mapas**: `MapManager` abre `.tmx`, se guardan colisiones desde la capa "Capa de) Tj
+0 -14 Td
+(Objetos 1" y se extraen spawn points por capa \(Player, Bolb, Slop, Fungop, Boss, Fire, Portal\).) Tj
+0 -14 Td
+(? **Gestión de entidades**: todos los actores \(jugadores, enemigos, objetos\) viven en) Tj
+0 -14 Td
+(`entities`, mientras que `syncedEntities` rastrea lo que debe replicarse a los clientes. La) Tj
+0 -14 Td
+(actualización \(`updateEntities`\) ejecuta cooldowns, físicas y elimina entidades, generando) Tj
+0 -14 Td
+(monedas al morir enemigos.) Tj
+0 -14 Td
+(? **Colisiones**: se resuelven de forma axis-aligned reutilizando `collisionObjects`. Las cajas) Tj
+0 -14 Td
+(de daño se comparan en `checkEntityDamage`, que también abre el menú de mejoras cuando un) Tj
+0 -14 Td
+(jugador entra en contacto con el fuego.) Tj
+0 -14 Td
+(? **HUD y cámaras**: renderiza HUDs, partículas y dibuja overlays como el láser del jefe) Tj
+0 -14 Td
+(utilizando `whitePixelRegion`. La cámara sigue al jugador con lerp y soporta sacudidas para) Tj
+0 -14 Td
+(impactos.) Tj
+0 -14 Td
+(? **Progresión**: al detectar que no quedan enemigos se genera un portal en el spawn) Tj
+0 -14 Td
+(predefinido. Al tocarlo se incrementa `roomsClearedCount`, se notifican clientes) Tj
+0 -14 Td
+(\(`CHANGE_LEVEL`\) y se lanza `InterlevelLoadingScreen` para cargar el siguiente mapa.) Tj
+0 -14 Td
+(? **Sincronización**: cada frame se envía `UPDATE_ENTITY` para todos los objetos en) Tj
+0 -14 Td
+(`syncedEntities`, y se responde a clientes recién conectados con `sendFullEntitySnapshotTo`.) Tj
+0 -14 Td
+(También se manda `HUD_FIRE_STATE` individual para mantener coherencia del HUD remoto y se) Tj
+0 -14 Td
+(notifican eventos como `COIN_PICKED`, `REMOVE_ENTITY` o `PLAYER_DIED`.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(9. Sistema de red) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? **ServerThread \(`core/src/main/java/com/FK/game/network/ServerThread.java`\)** abre un) Tj
+0 -14 Td
+(`DatagramSocket` en `56555`, escucha conexiones `CONNECT`, asigna IDs e instancia un) Tj
+0 -14 Td
+(`NetworkInputHandler` por cliente. Un hilo secundario atiende broadcasts en `56556` para) Tj
+0 -14 Td
+(descubrimiento automático.) Tj
+0 -14 Td
+(? El servidor mantiene dos mapas: por ID y por `InetSocketAddress`. Adicionalmente guarda IDs) Tj
+0 -14 Td
+(liberados para reuso.) Tj
+0 -14 Td
+(? **Entrada remota**: mensajes `INPUT:<id>:<acción>` llegan a `handlePacket`, que busca el) Tj
+0 -14 Td
+(jugador asociado y llama a `handleNetworkInput`. También procesa solicitudes de upgrade, cierre) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+8 0 obj
+<< /Length 2463 >>
+stream
+BT
+/F1 12 Tf
+1 0 0 1 72 720 Tm
+(de ventana, desconexiones y reset del servidor cuando no quedan clientes.) Tj
+0 -14 Td
+(? **Loop de replicación**: `gameLogicLoop` recorre todos los clientes ~30 veces por segundo y) Tj
+0 -14 Td
+(envía su `buildPlayerUpdateMessage`. `GameScreen` complementa esto generando) Tj
+0 -14 Td
+(`CREATE_ENTITY/UPDATE_ENTITY` para enemigos, monedas, portal y fuego.) Tj
+0 -14 Td
+(? **Mensajería**: los enums `NetworkMessage`, `StateMessage`, `EntityTypeMessage` definen un) Tj
+0 -14 Td
+(vocabulario claro. Aunque el protocolo usa strings simples, cada mensaje incluye ID, tipo,) Tj
+0 -14 Td
+(posición y estado, lo que facilita la reconstrucción del mundo en el cliente.) Tj
+0 -14 Td
+(? **Manejo de emergencias**: `MainGame` y `ServerDisconnectWindow` permiten apagar el servidor) Tj
+0 -14 Td
+(de forma ordenada \(broadcast de `SERVER_SHUTDOWN`, reinicio de pantallas\).) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(10. Progresión, economía y mejoras) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? Las monedas \(`Coin`\) persiguen al jugador más cercano, notifican al cliente cuando son) Tj
+0 -14 Td
+(recogidas y alimentan `PlayerData.coinCount`.) Tj
+0 -14 Td
+(? El fuego/hoguera \(`Fire`\) actúa como nodo social: cuando un jugador entra en su `DamageBox`) Tj
+0 -14 Td
+(se muestra el menú de mejoras, se congelan los controles y `UpgradeWindow` consulta costos al) Tj
+0 -14 Td
+(servidor.) Tj
+0 -14 Td
+(? `roomsClearedCount` decide cuándo se elige una sala del jefe; al morir un jugador se) Tj
+0 -14 Td
+(reinician estadísticas y se vuelve al mapa inicial.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(11. Audio y efectos) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? `SoundCache` gestiona loops \(pasos, fuego\) y reproducción espacial basándose en la distancia) Tj
+0 -14 Td
+(al jugador activo.) Tj
+0 -14 Td
+(? `activeEffects` en `GameScreen` permite reproducir partículas \(por ejemplo impactos en el) Tj
+0 -14 Td
+(suelo\) y el renderizado especial de ataques de jefe.) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(12. Recomendaciones para mantenimiento) Tj
+0 -14 Td
+() Tj
+0 -14 Td
+(? Centralizar la serialización de mensajes en un helper para reducir strings "magic" repartidas) Tj
+0 -14 Td
+(entre `GameScreen` y `ServerThread`.) Tj
+0 -14 Td
+(? Documentar las capas esperadas en los mapas Tiled para evitar errores de nombre.) Tj
+0 -14 Td
+(? Añadir pruebas automáticas o herramientas de validación para `PlayerData`/`UpgradeManager`,) Tj
+0 -14 Td
+(ya que la economía crece linealmente y podría necesitar ajustes.) Tj
+ET
+endstream
+endobj
+9 0 obj
+<< /Type /Page /Parent 10 0 R /MediaBox [0 0 612 792] /Contents 8 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+10 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R 9 0 R] /Count 4 >>
+endobj
+11 0 obj
+<< /Type /Catalog /Pages 10 0 R >>
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000003604 00000 n 
+0000003731 00000 n 
+0000007181 00000 n 
+0000007308 00000 n 
+0000011116 00000 n 
+0000011243 00000 n 
+0000013758 00000 n 
+0000013885 00000 n 
+0000013961 00000 n 
+trailer
+<< /Size 12 /Root 11 0 R >>
+startxref
+14012
+%%EOF

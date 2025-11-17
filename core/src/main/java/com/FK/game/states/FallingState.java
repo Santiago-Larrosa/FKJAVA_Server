@@ -91,13 +91,11 @@ public class FallingState implements EntityState<Player> {
     }
 
     private void handleAirControl(Player player, float delta) {
-        // CAMBIO: Obtenemos el handler del jugador
         InputHandler input = player.getInputHandler();
         
         float controlFactor = isFastFalling ? AIR_CONTROL * 0.3f : AIR_CONTROL;
         float targetVelocityX = 0;
         
-        // CAMBIO: Usamos el handler abstracto
         if (input.isMoveLeftPressed()) {
             targetVelocityX = -Player.WALK_SPEED * controlFactor;
             player.setMovingRight(false);

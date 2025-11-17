@@ -52,22 +52,15 @@ public class Player extends CharacterEntity<Player> {
 
     public Player(MainGame game, InputHandler inputHandler, PlayerData playerData) { 
         super(2000, FLOOR_Y, WIDTH, HEIGHT, 100, 100); 
-        setHealth(5);
         this.inputHandler = inputHandler; 
         this.playerData = playerData;  
         this.game = game;
         this.fireCooldown = FIRE_ATTACK_COOLDOWN;
         this.entityTypeMessage = EntityTypeMessage.PLAYER;
-        setDamage(3);
         setKnockbackX(300f);
         setKnockbackY(400f);
         setCollisionBoxOffset(10f, 0f);
-        TextureLoader loader = new BasicTextureLoader(); 
-        AnimationCache cache = AnimationCache.getInstance();
-        this.animations = new AnimationHandler[PlayerAnimationType.values().length];
-        for (PlayerAnimationType type : PlayerAnimationType.values()) {
-            animations[type.ordinal()] = cache.createAnimation(type);
-        }
+        initializeAnimations();
         this.stateMessage = StateMessage.PLAYER_IDLE;
         this.stateMachine = new EntityStateMachine<>(this, new IdleState());
         this.currentState = new IdleState();
@@ -78,13 +71,11 @@ public class Player extends CharacterEntity<Player> {
    
     @Override
     public void update(float delta) {
-        if (!movementLocked) {
-            stateMachine.update(delta);
-        }
-        
+        stateMachine.update(delta);
         super.update(delta); 
         debugPlatformDetection();
     }
+
     @Override
     public AnimationType getDeathAnimationType() {
         return PlayerAnimationType.SMOKE;
@@ -102,11 +93,8 @@ public class Player extends CharacterEntity<Player> {
     public AnimationType getDamageAnimationType() {
         return isMovingRight() ? PlayerAnimationType.FALLING_RIGHT : PlayerAnimationType.FALLING_LEFT;
     }
-public boolean isNearFire() { return nearFire; }
-public void setNearFire(boolean v) { nearFire = v; }
-
-public boolean isUpgradeMenuOpen() { return upgradeMenuOpen; }
-public void setUpgradeMenuOpen(boolean v) { upgradeMenuOpen = v; }
+    public boolean isUpgradeMenuOpen() { return upgradeMenuOpen; }
+    public void setUpgradeMenuOpen(boolean v) { upgradeMenuOpen = v; }
 
     public void setState(EntityState<Player> newState) {
         currentState.exit(this);
@@ -120,17 +108,25 @@ public void setUpgradeMenuOpen(boolean v) { upgradeMenuOpen = v; }
 
  
 
-public void updateFireCooldown(float delta) {
+    public void updateFireCooldown(float delta) {
         if (fireCooldown > 0) {
             fireCooldown -= delta;
             if (fireCooldown < 0) {
                 fireCooldown = 0;
                 isFireCharged = true;
             }
-            
-            
         }
         fireAttackHUD.updateFire(delta, isFireCharged);
+    }
+
+    
+    private void initializeAnimations() {
+        animations = new AnimationHandler[PlayerAnimationType.values().length];
+        AnimationCache cache = AnimationCache.getInstance();
+        
+        for (PlayerAnimationType type : PlayerAnimationType.values()) {
+            animations[type.ordinal()] = cache.createAnimation(type);
+        }
     }
 
     public void setIsFireCharged(boolean charged) {
@@ -198,6 +194,10 @@ public void setCurrentAnimation(AnimationType animType) {
     
     public void setY(float y) {
         this.bounds.y = y;
+    }
+
+    public float getDamage () {
+        return this.playerData.getAttackDamage();
     }
 
     public void setCollisionX(float x) {

@@ -23,12 +23,26 @@ public class MainGame extends Game {
     private static MainGame instance;
 
 public MainGame() {
+    Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+    System.err.println("[HOOK] Excepción no capturada en hilo: " + thread.getName());
+    throwable.printStackTrace();
+     try {
+        if (server != null) {
+            server.broadcastServerShutdown();
+            server.stopServer();
+        }
+    } catch (Exception e) {
+        e.printStackTrace();
+    }
+
+    System.err.println("[HOOK] Fuerza salida segura tras excepción.");
+    System.exit(1);
+});
+    
     instance = this;
 }
     @Override
     public void create() {
-       // server = new ServerThread();
-       // server.start();
         UIAssets.load();
         playerData = new PlayerData();
         playerData2 = new PlayerData();
@@ -37,7 +51,7 @@ public MainGame() {
 
     public void returnToServerLauncher() {
     if (server != null) {
-        server.stopServer(); // o tu método para cerrar el hilo
+        server.stopServer(); 
         server = null;
     }
     setScreen(new ServerLauncherScreen(this));
@@ -62,3 +76,7 @@ public static void onWindowClosed() {
 
 //./gradlew build
 //./gradlew :lwjgl3:run
+
+//./gradlew :lwjgl3:shadowJar
+//java -jar lwjgl3/build/libs/FKJAVA_Server-all.jar
+

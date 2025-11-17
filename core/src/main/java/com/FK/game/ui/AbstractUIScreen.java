@@ -1,5 +1,5 @@
-// Crea un nuevo archivo: AbstractUIScreen.java
-package com.FK.game.ui; // O donde guardes tus pantallas
+
+package com.FK.game.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;

@@ -5,7 +5,7 @@ import com.FK.game.entities.Enemy;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.FK.game.entities.Entity;
 
-public class EnemyDamageState implements EntityState<Enemy> {
+public class EnemyDamageState<E extends Enemy<E>> implements EntityState<E> {
 
     private final boolean attackerLookRight;
     private float damage = 0;
@@ -21,7 +21,7 @@ public class EnemyDamageState implements EntityState<Enemy> {
     }
 
     @Override
-    public void enter(Enemy enemy) {
+    public void enter(E enemy) {
         enemy.decreaseHealth(this.damage);
         knockbackForceX = knockbackForceX * (attackerLookRight ? 1f : -1f);
         enemy.getVelocity().x = knockbackForceX;
@@ -30,7 +30,7 @@ public class EnemyDamageState implements EntityState<Enemy> {
     }
 
     @Override
-    public void update(Enemy enemy, float delta) {
+    public void update(E enemy, float delta) {
         knockbackTimer -= delta;
         enemy.getBounds().x += enemy.getVelocity().x * delta;
         enemy.getBounds().y += enemy.getVelocity().y * delta;
@@ -52,7 +52,7 @@ public class EnemyDamageState implements EntityState<Enemy> {
     }
 
     @Override
-    public void render(Enemy enemy, Batch batch) {
+    public void render(E enemy, Batch batch) {
         if (enemy.getCurrentAnimation() != null && enemy.getCurrentAnimation().getCurrentFrame() != null) {
             batch.draw(enemy.getCurrentAnimation().getCurrentFrame(),
                 enemy.getX(), enemy.getY(),
@@ -61,8 +61,8 @@ public class EnemyDamageState implements EntityState<Enemy> {
     }
 
     @Override
-    public void handleInput(Enemy enemy) {}
+    public void handleInput(E enemy) {}
 
     @Override
-    public void exit(Enemy enemy) {}
+    public void exit(E enemy) {}
 }

@@ -11,7 +11,6 @@ import com.FK.game.core.GameContext;
 import com.FK.game.entities.Player;
 
 import com.FK.game.core.NetworkInputHandler;
-import com.FK.game.server.RemotePlayer; 
 import com.FK.game.core.MainGame;
 import com.FK.game.core.PlayerData;
 import com.FK.game.core.UpgradeManager;
@@ -21,7 +20,8 @@ import com.badlogic.gdx.Gdx;
 import com.FK.game.screens.*;
 
 public class ServerThread extends Thread {
-    private static final int PORT = 54555;
+    private static final int PORT = 56555;
+    private static final int BROADCAST_PORT = 56556;
     private volatile boolean running = true; 
     private DatagramSocket socket;
     private int nextId = 1;
@@ -54,9 +54,8 @@ public class ServerThread extends Thread {
                 System.out.println("Servidor iniciado en el puerto " + PORT);
                 startBroadcastListener();
             } catch (java.net.BindException e) {
-                System.err.println("[ERROR] El puerto " + PORT + " ya está en uso. No se pudo iniciar el servidor.");
-                e.printStackTrace(); // solo muestra el error, no lo resuelve
-                return; // o System.exit(1); si querés cerrar el programa
+                System.err.println("[ERROR] El puerto " + PORT + " ya está en uso. No se pudo iniciar el servidor."); 
+                return;
             } catch (IOException e) {
                 System.err.println("[ERROR] No se pudo crear el socket UDP: " + e.getMessage());
                 e.printStackTrace();
@@ -83,20 +82,19 @@ public class ServerThread extends Thread {
         }
     }
 
-        private void startBroadcastListener() {
+    private void startBroadcastListener() {
     broadcastThread = new Thread(() -> {
         DatagramSocket broadcastSocket = null;
         try {
             broadcastSocket = new DatagramSocket(null);
             broadcastSocket.setReuseAddress(true);
-            broadcastSocket.bind(new InetSocketAddress(54556));
+            broadcastSocket.bind(new InetSocketAddress(BROADCAST_PORT));
             broadcastSocket.setBroadcast(true);
 
             byte[] buffer = new byte[256];
-            System.out.println("[SERVER] Escuchando broadcasts en puerto 54556...");
+            System.out.println("[SERVER] Escuchando broadcasts en puerto 56556...");
 
             while (running) {
-                // Detener si ya hay el máximo de clientes
                 if (clientsById.size() >= 2) {
                     System.out.println("[SERVER] Límite de jugadores alcanzado. Deteniendo broadcast...");
                     break;
@@ -149,18 +147,15 @@ public class ServerThread extends Thread {
                 }
                 int assignedId;
                     if (!releasedIds.isEmpty()) {
-                        assignedId = releasedIds.remove(0); // 🔁 reutiliza la primera ID disponible
+                        assignedId = releasedIds.remove(0); 
                         System.out.println("Reutilizando ID liberada: " + assignedId);
                     } else {
-                        assignedId = nextId++; // 🔸 asigna una nueva si no hay liberadas
+                        assignedId = nextId++;
                         System.out.println("Asignando nueva ID: " + assignedId);
                     }
 
 
-                NetworkInputHandler inputHandler = new NetworkInputHandler();
-                RemotePlayer player = new RemotePlayer(); 
-
-                ConnectedClient newClient = new ConnectedClient(assignedId, address, player, inputHandler);
+                ConnectedClient newClient = new ConnectedClient(assignedId, address);
                 clientsById.put(assignedId, newClient);
                 clientsByAddress.put(address, newClient);
 
@@ -201,7 +196,6 @@ public class ServerThread extends Thread {
                 String input = parts[2];
                 Player player = GameContext.getScreen().getPlayerById(client.id-1);
                 player.getInputHandler().handleNetworkInput(input);
-                //System.out.println("Recibido input del jugador " + client.id + ": " + input);
         } else if (msg.equals("UPGRADE_DAMAGE")) {
             Player p = GameContext.getScreen().getPlayerById(client.id - 1);
             if (p != null) {
@@ -225,7 +219,7 @@ public class ServerThread extends Thread {
         }else if (msg.equals("REQUEST_UPGRADE_DATA")) {
             Player p = GameContext.getScreen().getPlayerById(client.id - 1);
             if (client != null) {
-                PlayerData data = p.getPlayerData(); // o tu estructura de progreso
+                PlayerData data = p.getPlayerData(); 
                 UpgradeManager manager = GameContext.getScreen().getUpgradeManager();
 
                 int coins = data.coinCount;
@@ -276,10 +270,6 @@ public void sendPacketToAll(String msg) {
     private void gameLogicLoop() {
         try {
             while (running) {
-                for (ConnectedClient c : clientsById.values()) {
-                    c.player.update(1 / 30f); 
-                }
-
                 for (ConnectedClient targetClient : clientsById.values()) {
                     for (ConnectedClient playerState : clientsById.values()) {
 
@@ -346,21 +336,19 @@ public void sendPacketToAll(String msg) {
         if (game != null) {
             System.out.println("[SERVER] Todos los jugadores desconectados. Reiniciando servidor...");
 
-            // 🧹 Limpieza total del contexto
+            
             GameScreen oldScreen = (GameScreen) GameContext.getScreen();
             if (oldScreen != null) {
                 System.out.println("[SERVER] GameScreen anterior eliminado.");
             }
 
             GameContext.clearPlayers();
-            GameContext.setScreen(null); // evitar referencias colgantes
+            GameContext.setScreen(null); 
 
-            // 🔁 Reiniciar datos globales
             game.playerData.resetOnReload();
             game.playerData2.resetOnReload();
             game.roomsClearedCount = 0;
 
-            // ✅ Volver a la pantalla del lanzador
             game.setScreen(new ServerLauncherScreen(game));
         }
     });
@@ -401,14 +389,10 @@ public void broadcastServerShutdown() {
     private class ConnectedClient {
         int id;
         InetSocketAddress address;
-        RemotePlayer player;
-        NetworkInputHandler inputHandler;
 
-        public ConnectedClient(int id, InetSocketAddress address, RemotePlayer player, NetworkInputHandler inputHandler) {
+        public ConnectedClient(int id, InetSocketAddress address) {
             this.id = id;
             this.address = address;
-            this.player = player;
-            this.inputHandler = inputHandler;
         }
     }
 }

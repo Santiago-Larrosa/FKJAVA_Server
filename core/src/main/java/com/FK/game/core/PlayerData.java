@@ -12,7 +12,7 @@ public class PlayerData {
         this.currentHealth = 5;
         this.attackDamageLevel = 1;
         this.currentHealth = getMaxHealth();
-        this.coinCount = 0;
+        this.coinCount = 1000;
     }
 
 
@@ -29,7 +29,7 @@ public class PlayerData {
     }
 
     public void resetOnReload() {
-        this.coinCount = 0;
+        this.coinCount = 1000;
         this.healthLevel = 1;
         this.attackDamageLevel = 1;
         this.currentHealth = getMaxHealth();

@@ -12,13 +12,12 @@ import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Rectangle;
 import com.FK.game.core.GameContext;
-import com.FK.game.entities.Enemy;
 import com.FK.game.entities.Boss; 
 import com.FK.game.entities.Player;
 import com.FK.game.network.*;
 import com.FK.game.animations.EnemyAnimationType;
 
-public class BossLaserAttackState implements EntityState<Enemy> {
+public class BossLaserAttackState implements EntityState<Boss> {
 
     private enum Phase {
         WARNING,  
@@ -37,22 +36,19 @@ public class BossLaserAttackState implements EntityState<Enemy> {
     private float attackAngle;
     private Polygon damagePolygon;  
 
-    @Override
-public void enter(Enemy enemy) {
+@Override
+public void enter(Boss enemy) {
     currentPhase = Phase.WARNING;
     
     phaseTimer = 0f;
 
-    // --- LÓGICA DE APUNTADO MEJORADA ---
-    Boss boss = (Boss) enemy;
+    Boss boss = enemy;
     boss.setAnimation(EnemyAnimationType.BOLB);
-    Player target = boss.getCurrentTarget(); // Obtenemos el objetivo que el Jefe ya decidió
+    Player target = boss.getCurrentTarget(); 
     boss.setStateMessage(StateMessage.BOSS_ATTACKING);
     if (target != null) {
-        // Apuntamos al centro del objetivo
         targetPosition = target.getCenter();
     } else {
-        // Si por alguna razón no hay objetivo, apunta hacia abajo como respaldo
         targetPosition = new Vector2(enemy.getX(), 0);
     }
 
@@ -62,7 +58,7 @@ public void enter(Enemy enemy) {
 }
 
     @Override
-    public void update(Enemy enemy, float delta) {
+    public void update(Boss enemy, float delta) {
         if (damageCooldown > 0) damageCooldown -= delta;
         phaseTimer += delta;
 
@@ -100,7 +96,7 @@ public void enter(Enemy enemy) {
         }
     }
 
-    private void createDamagePolygon(Enemy enemy) {
+    private void createDamagePolygon(Boss enemy) {
         float beamLength = 2000f;
         float beamWidth = 20f;    
 
@@ -116,16 +112,14 @@ public void enter(Enemy enemy) {
         damagePolygon.setRotation(attackAngle);
     }
 
-    private void checkCollision(Enemy enemy) {
+    private void checkCollision(Boss enemy) {
     if (damagePolygon == null) return;
 
-    // Recorremos la lista de TODOS los jugadores activos
     for (Player player : GameContext.getActivePlayers()) {
         if (player == null || player.isDead()) {
-            continue; // Ignoramos jugadores nulos o muertos
+            continue; 
         }
 
-        // Creamos el polígono para el jugador actual
         Rectangle pRect = player.getCollisionBox();
         Polygon playerPolygon = new Polygon(new float[]{
             pRect.x, pRect.y,
@@ -134,10 +128,7 @@ public void enter(Enemy enemy) {
             pRect.x, pRect.y + pRect.height
         });
 
-        // Comprobamos la colisión
         if (Intersector.overlapConvexPolygons(damagePolygon, playerPolygon)) {
-            // El método receiveDamage del jugador ya maneja su propio cooldown de invencibilidad,
-            // por lo que no necesitamos un temporizador de daño aquí.
             player.receiveDamage(enemy);
         }
     }
@@ -157,7 +148,7 @@ public void enter(Enemy enemy) {
 }
 
     
-    public void renderBeam(Batch batch, TextureRegion whitePixel, Enemy enemy) {
+    public void renderBeam(Batch batch, TextureRegion whitePixel, Boss enemy) {
     if (currentPhase != Phase.FIRING) return;
     Vector2 bossCenter = new Vector2(enemy.getX() + enemy.getWidth() / 2, enemy.getY() + enemy.getHeight() / 2);
 
@@ -175,15 +166,15 @@ public void enter(Enemy enemy) {
 
 
     @Override
-    public void exit(Enemy enemy) {
+    public void exit(Boss enemy) {
     }
 
     @Override
-    public void render(Enemy enemy, com.badlogic.gdx.graphics.g2d.Batch batch) {
+    public void render(Boss enemy, com.badlogic.gdx.graphics.g2d.Batch batch) {
     }
 
     @Override
-    public void handleInput(Enemy enemy) {}
+    public void handleInput(Boss enemy) {}
 
     public float getAttackAngle() {
         return attackAngle;

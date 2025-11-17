@@ -16,7 +16,7 @@ import com.FK.game.sounds.*;
 import com.FK.game.network.*;
 
 import java.util.Random;
-public class Boss extends Enemy {
+public class Boss extends Enemy<Boss> {
     private Player currentTarget; 
     public Boss(Array<Rectangle> collisionObjects) {
         super(0, 0, 1250, 1300, 1100, 1150, collisionObjects);
@@ -47,8 +47,8 @@ public class Boss extends Enemy {
         }
     }
     @Override
-    protected EnemyDamageState createDamageState(Entity source) {
-        return new EnemyDamageState(source);
+    protected EnemyDamageState<Boss> createDamageState(Entity source) {
+        return new EnemyDamageState<>(source);
     }
 public void acquireTarget() {
         this.currentTarget = null;
@@ -74,7 +74,7 @@ public void acquireTarget() {
     }
 
     @Override
-    public EntityState<Enemy> getDefaultState() {
+    public EntityState<Boss> createDefaultState() {
         return new BossIdleState();
     }
     @Override

@@ -68,8 +68,8 @@
         private TiledMap map;
         private OrthogonalTiledMapRenderer mapRenderer;
         private Array<Rectangle> collisionObjects = new Array<Rectangle>();
-        private ShapeRenderer shapeRenderer;
-        private Array<Enemy> enemies; //-
+        //private ShapeRenderer shapeRenderer;
+        private Array<Enemy<?>> enemies; //-
         private Array<Entity> entities;
         private Rectangle playerSpawnPoint; 
         private final Color DarkViolet = new Color(0.1f, 0.05f, 0.15f, 1f); 
@@ -102,7 +102,7 @@
 
     @Override
         public void show() {
-            shapeRenderer = new ShapeRenderer();
+            //shapeRenderer = new ShapeRenderer();
             upgradeManager = new UpgradeManager();
             batch = new SpriteBatch();
             if (isFirstRun) {
@@ -153,30 +153,24 @@
         private void checkPortalCollision() {
     if (portal == null) return;
 
-    // Recorremos todos los jugadores activos (en modo local o red)
     for (Player player : GameContext.getActivePlayers()) {
         if (player == null || player.isDead()) continue;
 
-        // Si cualquier jugador toca el portal
         if (player.getCollisionBox().overlaps(portal.getCollisionBox())) {
             SoundCache.getInstance().stopAllSounds();
             game.roomsClearedCount++;
 
-            // Actualizamos datos de todos los jugadores vivos
             for (Player p : GameContext.getActivePlayers()) {
                 if (p != null && !p.isDead()) {
                     p.updatePlayerData();
                 }
             }
 
-            // Notificamos a todos los clientes para cambiar de nivel
             if (game.server != null) {
                 game.server.sendPacketToAll("CHANGE_LEVEL");
             }
 
-            // Cargamos la pantalla de transición
             game.setScreen(new InterlevelLoadingScreen(game, this));
-            break; // Evitamos múltiples activaciones simultáneas
         }
     }
 }
@@ -222,14 +216,11 @@
                 mapManager.loadMaps(commonRooms.toArray(String.class));
             }
 
-            // Elegir aleatorio
             mapManager.setRandomMap();
-
-            // ✅ Obtener nombre del archivo seleccionado
             TiledMap selectedMap = mapManager.getCurrentMap();
             String mapName = selectedMap.getProperties().get("fileName", String.class); 
 
-            return mapName; // Ej: "maps/room6.tmx"
+            return mapName; 
         }
 
 
@@ -322,7 +313,7 @@
             }
 
             for (Rectangle spawn : bolbSpawns) {
-                Enemy bolb = new Bolb(collisionObjects);
+                Bolb bolb = new Bolb(collisionObjects);
                 bolb.setPosition(spawn.x, spawn.y);
                 enemies.add(bolb);
                 entities.add(bolb);
@@ -330,7 +321,7 @@
             }
 
             for (Rectangle spawn : slopSpawns) {
-                Enemy slop = new Slop(collisionObjects);
+                Slop slop = new Slop(collisionObjects);
                 slop.setPosition(spawn.x, spawn.y);
                 enemies.add(slop);
                 entities.add(slop);
@@ -338,7 +329,7 @@
             }
 
             for (Rectangle spawn : fungopSpawns) {
-                Enemy fungop = new Fungop(collisionObjects);
+                Fungop fungop = new Fungop(collisionObjects);
                 fungop.setPosition(spawn.x, spawn.y);
                 enemies.add(fungop);
                 entities.add(fungop);
@@ -386,7 +377,6 @@
             if (id < 0 || id >= players.size) return null;
             return players.get(id);
         }
-// ---portal
     private void updateEntities(float delta) {
         
 
@@ -394,11 +384,9 @@
             
             Entity e = entities.get(i);
 
-            // --- 1. LÓGICA DE ACTUALIZACIÓN DE ESTADO (de "Versión Actual") ---
             if (e instanceof Player) {
                 Player player = (Player) e;
-                player.updateFireCooldown(delta); // Cooldown de disparo
-                // Cuando el fuego termina de cargarse:
+                player.updateFireCooldown(delta); 
                 
                 int index = players.indexOf(player, true);
                 /*if (player.isFireCharged()) {
@@ -416,30 +404,25 @@
 
             }
             if (e instanceof CharacterEntity<?>) {
-                // Cooldown de invencibilidad
                 ((CharacterEntity<?>) e).updateDamageCooldown(delta); 
             }
-            if (e instanceof Enemy) {
-                Enemy enemy = (Enemy) e;
-                enemy.updateAttackCooldown(delta); // Cooldown de ataque de IA
+            if (e instanceof Enemy<?>) {
+                Enemy<?> enemy = (Enemy<?>) e;
+                enemy.updateAttackCooldown(delta); 
             }
 
 
-            // --- 2. LÓGICA DE MUERTE Y ELIMINACIÓN (de "Versión Actual") ---
             if (e instanceof Entity && e.isReadyForRemoval()) {
 
                 int idToRemove = ((Entity) e).getNetworkId();
 
-                // Si muere un Jugador
                 if (e instanceof Player) {
                     handlePlayerDeath((Player) e);
                     return;
                 }
 
-
-                // Si muere un Enemigo
-                if (e instanceof Enemy) {
-                    Enemy en = (Enemy) e;
+                if (e instanceof Enemy<?>) {
+                    Enemy<?> en = (Enemy<?>) e;
                     Rectangle spawnArea = en.getCollisionBox();
                     for (int j = 0; j < en.getCoinValue(); j++) {
                         float spawnX = MathUtils.random(spawnArea.x, spawnArea.x + spawnArea.width);
@@ -451,7 +434,6 @@
                     enemies.removeValue(en, true);
                 }
 
-                // Eliminar la entidad del servidor
                 entities.removeIndex(i);
                 for (int j = 0; j < syncedEntities.size; j++) {
                     Entity ent = syncedEntities.get(j);
@@ -462,34 +444,27 @@
                 }
 
 
-                // 🔸 Notificar a los clientes que deben borrar la entidad
                 String removeMsg = "REMOVE_ENTITY:" + idToRemove;
                 game.server.sendPacketToAll(removeMsg);
 
-                continue; // pasar al siguiente elemento
+                continue; 
             }
 
             
             
-            // --- 3. LÓGICA DE FÍSICA Y COLISIÓN (de "Versión Vieja") ---
-            
             float oldX = e.getX();
             float oldY = e.getY();
             
-            // (e.update() aquí aplica velocidad, gravedad, etc.)
             e.update(delta);
 
-            // (El servidor no necesita 'updateAttackCooldown' aquí, ya lo hicimos arriba)
 
             Rectangle bounds = e.getCollisionBox();
             boolean collisionX = false;
             boolean collisionY = false;
             
-            // Las monedas no colisionan con el mundo
             if (!(e instanceof Coin)){
                 for (Rectangle rect : collisionObjects) {
                     if (bounds.overlaps(rect)) {
-                        // Calcular solapamiento (overlap)
                         float overlapX = Math.min(
                             bounds.x + bounds.width - rect.x,
                             rect.x + rect.width - bounds.x
@@ -499,7 +474,6 @@
                             rect.y + rect.height - bounds.y
                         );
 
-                        // Determinar si es colisión X o Y basándose en el menor solapamiento
                         if (overlapX < overlapY) {
                             collisionX = true;
                         } else {
@@ -509,7 +483,6 @@
                 }
             }
             
-            // Resolver Colisión X
             if (collisionX) {
                 e.setPosition(oldX, e.getY());
                 e.setHasWallAhead(true);
@@ -518,26 +491,23 @@
                 e.setHasWallAhead(false);
             }
 
-            // Resolver Colisión Y
             boolean landedOnPlatform = false; 
             if (collisionY) {
-                if (e.getVelocity().y <= 0) { // Si estaba cayendo o quieto
+                if (e.getVelocity().y <= 0) { 
                     landedOnPlatform = true;
-                    e.getVelocity().y = 0; // Detener caída
-                } else { // Si estaba saltando (chocó la cabeza)
+                    e.getVelocity().y = 0; 
+                } else { 
                     e.getVelocity().y = 0; 
                 }
-                e.setPosition(e.getX(), oldY); // Resetear posición Y
+                e.setPosition(e.getX(), oldY);
             }
             
-            e.setOnPlatform(landedOnPlatform); // Actualizar estado de "en el suelo"
+            e.setOnPlatform(landedOnPlatform); 
 
 
-            // --- 4. LÓGICA DE MONEDAS (Atracción y Colección) (de "Versión Actual") ---
             if (e instanceof Coin) {
     Coin coin = (Coin) e;
 
-    // Si aún no tiene target (jugador objetivo)
     if (coin.getTarget() == null) {
         Vector2 coinCenter = coin.getCenter();
 
@@ -556,7 +526,6 @@
         }
     }
 
-    // Comprobar colisión con el jugador para recolectarla
     if (coin.getTarget() != null && coin.getCollisionBox().overlaps(coin.getTarget().getCollisionBox())) {
         Player targetPlayer = coin.getTarget();
         targetPlayer.addCoins(1);
@@ -568,10 +537,10 @@
 }
 
 
-        } // --- Fin del bucle de entidades ---
+        }
         for (int i = 0; i < syncedEntities.size; i++) {
             Entity e = syncedEntities.get(i);
-                    int id = e.getNetworkId(); // implementar esto
+                    int id = e.getNetworkId(); 
                     String type = e.getTypeName(); 
                     float x = e.getX();
                     float y = e.getY();
@@ -583,8 +552,11 @@
                     state = e.getStateMessage().toString();
                     facing = e.isMovingRight() ? "RIGHT" : "LEFT";
 
-                    if (e instanceof Enemy && ((Enemy)e).hasRotation()) {
-                        rotation = ((Enemy)e).getRotation();
+                    if (e instanceof Enemy<?>) {
+                        Enemy<?> enemy = (Enemy<?>) e;
+                        if (enemy.hasRotation()) {
+                            rotation = enemy.getRotation();
+                        }
                     }
 
                     
@@ -610,7 +582,7 @@
     
             public void sendFullEntitySnapshotTo(InetSocketAddress targetAddress) {
     for (Entity e : syncedEntities) {
-        int id = e.getNetworkId(); // implementar esto
+        int id = e.getNetworkId(); 
                     String type = e.getTypeName(); 
                     float x = e.getX();
                     float y = e.getY();
@@ -622,8 +594,11 @@
                     state = e.getStateMessage().toString();
                     facing = e.isMovingRight() ? "RIGHT" : "LEFT";
 
-                    if (e instanceof Enemy && ((Enemy)e).hasRotation()) {
-                        rotation = ((Enemy)e).getRotation();
+                    if (e instanceof Enemy<?>) {
+                        Enemy<?> enemy = (Enemy<?>) e;
+                        if (enemy.hasRotation()) {
+                            rotation = enemy.getRotation();
+                        }
                     }
 
       String msg = "CREATE_ENTITY:" + id + ":" + type + ":" +
@@ -650,21 +625,22 @@
                         if (attacker instanceof Player && target instanceof Fire ) {
                             Player player = (Player) attacker;
                             int index = players.indexOf(player, true);
-                            if (!player.isNearFire() || !player.isUpgradeMenuOpen()) {
+                            if (!player.isUpgradeMenuOpen()) {
+                                if (!(attacker.getStateMachine().getCurrentState() instanceof FireAttackState)) {
                                 player.getInputHandler().handleNetworkInput("STOP_ATTACK");
                                 System.out.println("Jugador abrio el menú de mejoras cerca del fuego.");
                                 game.server.sendPacketTo(index, "OPEN_UPGRADE_MENU");
                                 openUpgradeMenu(player);
+                                }
                             }
                             
                         } else {
                             if (target instanceof CharacterEntity) {
-                                ((CharacterEntity) target).receiveDamage(attacker);
+                                if (!(attacker instanceof Player && target instanceof Player)){
+                                    ((CharacterEntity) target).receiveDamage(attacker);
+                                }
                             }
                         }
-                    }else if (attacker instanceof Player) {
-                        // Cuando sale del área del fuego
-                        ((Player) attacker).setNearFire(false);
                     }
                 }
             }
@@ -698,7 +674,6 @@ private Player getClosestAlivePlayer(Vector2 from) {
     Player best = null;
     float bestDist2 = Float.MAX_VALUE;
 
-    // Si tenés un Array<Player> players:
     for (Player p : players) {
         if (p != null && !p.isDead()) {
             float d2 = p.getCenter().dst2(from);
@@ -709,7 +684,6 @@ private Player getClosestAlivePlayer(Vector2 from) {
         }
     }
 
-    // (Si no tenés lista y usás player1/player2, evaluá ambos acá)
     return best;
 }
 
@@ -744,119 +718,27 @@ private Player getClosestAlivePlayer(Vector2 from) {
         }
 */
     @Override
-        public void render(float delta) {
-          
-            if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
-            if (game.server != null) { // Solo si estás ejecutando como servidor
+    public void render(float delta) {
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.M)) {
+            if (game.server != null) { 
                 if (serverDisconnectWindow == null || !serverDisconnectWindow.hasParent()) {
                     openExitMenu();
                 }
             }
         }
 
+        updateEntities(delta);
+        updateCamera(delta);
 
-            updateEntities(delta);
-            updateCamera(delta);
-            
-            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-            shapeRenderer.setProjectionMatrix(uiStage.getCamera().combined);
-            shapeRenderer.begin(ShapeType.Filled);
-            shapeRenderer.rect(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight(),
-                LightViolet, LightViolet, DarkViolet, DarkViolet);
-            
-            shapeRenderer.end();
-            mapRenderer.setView(camera);
-            mapRenderer.render();
+        Gdx.gl.glClearColor(0.05f, 0.05f, 0.07f, 1f); 
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-            batch.setProjectionMatrix(camera.combined);
-            batch.begin();
-            {
-                for (Entity e : entities) {
-                    e.render(batch);
-                }
-                for (int i = activeEffects.size - 1; i >= 0; i--) {
-                    ParticleEffect effect = activeEffects.get(i);
-                    effect.update(delta);
-                    effect.draw(batch);   
-                    if (effect.isComplete()) {
-                        effect.dispose();
-                        activeEffects.removeIndex(i);
-                    }
-                }
-                for (BaseHUD hud : hudElements) {
-                    hud.render(batch, camera);
-                }
-            }
+        uiStage.act(Math.min(delta, 1 / 30f));
+        uiStage.draw();
+    }
 
-            batch.end();
-
-            Gdx.gl.glEnable(GL20.GL_BLEND); 
-            
-            for (Entity e : entities) {
-                if (e instanceof Boss) {
-                    Boss boss = (Boss) e;
-                    if (boss.getStateMachine().getCurrentState() instanceof BossLaserAttackState) {
-                        BossLaserAttackState state = (BossLaserAttackState) boss.getStateMachine().getCurrentState();
-                        shapeRenderer.setProjectionMatrix(camera.combined);
-                        shapeRenderer.identity();
-                        Vector2 bossCenter = new Vector2(boss.getX() + boss.getWidth()/2, boss.getY() + boss.getHeight()/2);
-                        shapeRenderer.translate(bossCenter.x, bossCenter.y, 0);
-                        shapeRenderer.rotate(0, 0, 1, state.getAttackAngle());
-                        state.renderWarning(shapeRenderer);
-                    }
-                }
-            }
-            Gdx.gl.glDisable(GL20.GL_BLEND);
-            
-            batch.begin();
-            for (Entity e : entities) {
-                if (e instanceof Boss) {
-                    Boss boss = (Boss) e;
-                    if (boss.getStateMachine().getCurrentState() instanceof BossLaserAttackState) {
-                        BossLaserAttackState state = (BossLaserAttackState) boss.getStateMachine().getCurrentState();
-                        state.renderBeam(batch, whitePixelRegion, boss);
-                    }
-                }
-            }
-            batch.end();
-
-            shapeRenderer.setProjectionMatrix(camera.combined);
-            shapeRenderer.identity();
-            for (Entity e: this.entities) {
-                e.renderDebug(shapeRenderer);
-                e.renderDebugDamage(shapeRenderer);
-            }
-            uiStage.act(Math.min(delta, 1 / 30f));
-            uiStage.draw();
-            
-        }
-
-    
-        
-
-            
         private void updateCamera(float delta) {
-            float playerCenterX = player1.getBounds().x + player1.getBounds().width / 2f;
-            float playerCenterY = player1.getBounds().y + player1.getBounds().height / 2f;
-            float offsetX = player1.isMovingRight() ? 100f : -100f; 
-            float offsetY = 20f; 
-            float targetX = playerCenterX + offsetX;
-            float targetY = playerCenterY + offsetY;
-            float lerpSpeed = 3f; 
-            camera.position.x += (targetX - camera.position.x) * lerpSpeed * delta;
-            camera.position.y += (targetY - camera.position.y) * lerpSpeed * delta;
-            if (shakeTime < shakeDuration) {
-                shakeTime += delta;
-                float currentIntensity = shakeIntensity * (1 - (shakeTime / shakeDuration));
-                float shakeX = MathUtils.random(-1f, 1f) * currentIntensity;
-                float shakeY = MathUtils.random(-1f, 1f) * currentIntensity;
-                camera.position.x += shakeX;
-                camera.position.y += shakeY;
-            } else if (shakeDuration > 0f) {
-                shakeDuration = 0f;
-            }
-
-            camera.update();
         }
 
         public void shakeCamera(float duration, float intensity) {

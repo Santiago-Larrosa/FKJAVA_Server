@@ -12,7 +12,6 @@ public class Lwjgl3Launcher {
     private static Lwjgl3Application createApplication() {
         Lwjgl3ApplicationConfiguration config = getDefaultConfiguration();
 
-        // Listener de cierre de ventana
         config.setWindowListener(new Lwjgl3WindowAdapter() {
             @Override
             public boolean closeRequested() {
@@ -24,7 +23,7 @@ public class Lwjgl3Launcher {
                 }
                 MainGame.onWindowClosed();
                 System.exit(0);
-                return true; // permite el cierre
+                return true; 
             }
         });
 

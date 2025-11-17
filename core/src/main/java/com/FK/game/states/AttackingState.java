@@ -28,8 +28,8 @@ public class AttackingState implements EntityState<Player> {
         player.getDamageBox().set(player.getX(), player.getY(), player.getWidth(), player.getHeight());
         player.setStateMessage(StateMessage.PLAYER_ATTACKING);
         player.setCurrentAnimation(player.isMovingRight() ? PlayerAnimationType.ATTACKING_RIGHT : PlayerAnimationType.ATTACKING_LEFT);
-         SoundCache.getInstance().get(SoundType.SWORD).play(0.5f);
-         player.setDamage(0f);
+        SoundCache.getInstance().get(SoundType.SWORD).play(0.5f);
+         //player.setDamage(0f);
         attackTimer = 0f;
         hitboxActive = false;
         attackHitbox = new Rectangle(
@@ -126,7 +126,7 @@ public class AttackingState implements EntityState<Player> {
 
     @Override
     public void exit(Player player) {
-        player.setDamage(3f);
+        //player.setDamage(3f);
         player.setDamageSize(0,0);
     }
 }
